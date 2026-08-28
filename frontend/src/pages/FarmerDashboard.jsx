@@ -15,6 +15,7 @@ import {
 } from 'recharts';
 import { useAuth } from '../hooks/useAuth';
 import { useLanguage } from '../hooks/useLanguage';
+import { getCropImage } from '../utils/cropImages';
 import { getPrices, getTrend, getPriceHistory } from '../services/api';
 import { DEMO_BUYERS, DEMO_STORAGE, DEMO_LOTS } from '../data/demoData';
 import { TrendBadge, VerifiedBadge, StatusBadge } from '../components/Badges';
@@ -250,7 +251,14 @@ export default function FarmerDashboard() {
                 <tbody className="divide-y divide-gray-50">
                   {prices.slice(0, 8).map(p => (
                     <tr key={p.id} className="hover:bg-green-50/30 transition-colors">
-                      <td className="py-3 font-semibold text-gray-800">{p.crop}</td>
+                      <td className="py-3 font-semibold text-gray-800 flex items-center gap-2.5">
+                        <img
+                          src={getCropImage(p.crop)}
+                          alt={p.crop}
+                          className="w-7 h-7 rounded-md object-cover flex-shrink-0 border border-gray-100 shadow-2xs"
+                        />
+                        <span>{p.crop}</span>
+                      </td>
                       <td className="py-3 text-gray-600">
                         <span className="flex items-center gap-1">
                           <MapPin className="w-3 h-3 text-gray-400" />

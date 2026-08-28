@@ -12,6 +12,7 @@ import {
 import { DEMO_PRICES } from '../data/demoData';
 import { TrendBadge } from '../components/Badges';
 import { useLanguage } from '../hooks/useLanguage';
+import { getCropImage } from '../utils/cropImages';
 
 // -------------------------------------------------------
 // HERO SECTION
@@ -19,49 +20,75 @@ import { useLanguage } from '../hooks/useLanguage';
 function Hero() {
   const { t } = useLanguage();
   return (
-    <section className="bg-gradient-to-b from-green-900 to-green-800 text-white pt-16 pb-24 px-4">
-      <div className="max-w-6xl mx-auto text-center">
-        {/* Badge */}
-        <div className="inline-flex items-center gap-2 bg-white/10 border border-white/20 rounded-full px-4 py-1.5 text-sm font-medium mb-6">
-          <Sprout className="w-4 h-4 text-green-300" />
-          Smart India Hackathon 2024
-        </div>
-
-        {/* Headline */}
-        <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight mb-6 text-balance">
-          {t('knowYourPrice')}<br />
-          {t('findYourBuyer')}<br />
-          <span className="text-green-300">{t('sellSmarter')}</span>
-        </h1>
-
-        <p className="text-lg sm:text-xl text-green-100 max-w-2xl mx-auto mb-10 leading-relaxed">
-          {t('heroDescription')}
-        </p>
-
-        {/* CTA Buttons */}
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-          <Link to="/prices" className="btn-accent flex items-center gap-2 text-base w-full sm:w-auto justify-center">
-            <BarChart2 className="w-5 h-5" />
-            {t('exploreMarketPrices')}
-          </Link>
-          <Link to="/register" className="btn-secondary flex items-center gap-2 text-base w-full sm:w-auto justify-center">
-            {t('getStartedFree')}
-            <ArrowRight className="w-5 h-5" />
-          </Link>
-        </div>
-
-        {/* Stats */}
-        <div className="grid grid-cols-3 gap-4 mt-16 max-w-lg mx-auto">
-          {[
-            { value: '200+', label: t('marketsTracked') },
-            { value: '8', label: t('majorCrops') },
-            { value: '100%', label: t('transparent') },
-          ].map(stat => (
-            <div key={stat.label} className="text-center">
-              <div className="text-2xl font-bold text-green-300">{stat.value}</div>
-              <div className="text-xs text-green-200 mt-0.5">{stat.label}</div>
+    <section className="bg-gradient-to-b from-green-900 to-green-800 text-white pt-12 pb-20 px-4">
+      <div className="max-w-6xl mx-auto">
+        <div className="grid lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+          {/* Left Column: Pitch & CTA */}
+          <div className="lg:col-span-7 text-center lg:text-left">
+            {/* Badge */}
+            <div className="inline-flex items-center gap-2 bg-white/10 border border-white/20 rounded-full px-4 py-1.5 text-sm font-medium mb-6">
+              <Sprout className="w-4 h-4 text-green-300" />
+              Smart India Hackathon 2026
             </div>
-          ))}
+
+            {/* Headline */}
+            <h1 className="text-4xl sm:text-5xl lg:text-5.5xl font-bold leading-tight mb-5 text-balance">
+              {t('knowYourPrice')}<br />
+              {t('findYourBuyer')}<br />
+              <span className="text-green-300">{t('sellSmarter')}</span>
+            </h1>
+
+            <p className="text-base sm:text-lg text-green-100 max-w-xl mx-auto lg:mx-0 mb-8 leading-relaxed">
+              {t('heroDescription')}
+            </p>
+
+            {/* CTA Buttons */}
+            <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
+              <Link to="/prices" className="btn-accent flex items-center gap-2 text-base w-full sm:w-auto justify-center">
+                <BarChart2 className="w-5 h-5" />
+                {t('exploreMarketPrices')}
+              </Link>
+              <Link to="/register" className="btn-secondary flex items-center gap-2 text-base w-full sm:w-auto justify-center">
+                {t('getStartedFree')}
+                <ArrowRight className="w-5 h-5" />
+              </Link>
+            </div>
+
+            {/* Stats */}
+            <div className="grid grid-cols-3 gap-4 mt-10 max-w-md mx-auto lg:mx-0 pt-6 border-t border-green-700/50">
+              {[
+                { value: '200+', label: t('marketsTracked') },
+                { value: '8', label: t('majorCrops') },
+                { value: '100%', label: t('transparent') },
+              ].map(stat => (
+                <div key={stat.label} className="text-center lg:text-left">
+                  <div className="text-2xl font-bold text-green-300">{stat.value}</div>
+                  <div className="text-xs text-green-200 mt-0.5">{stat.label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Right Column: Hero Visual Asset */}
+          <div className="lg:col-span-5 flex justify-center">
+            <div className="relative w-full max-w-md lg:max-w-none">
+              <div className="absolute -inset-1.5 bg-gradient-to-tr from-green-400/30 to-amber-300/30 rounded-3xl blur-md"></div>
+              <div className="relative rounded-2xl overflow-hidden border border-white/20 shadow-2xl bg-green-950/40">
+                <img
+                  src="/images/hero-farmer.avif"
+                  alt="Indian farmer in lush green agricultural field"
+                  className="w-full h-72 sm:h-80 lg:h-96 object-cover object-center transform hover:scale-102 transition-transform duration-500"
+                  loading="eager"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent flex items-end p-4">
+                  <div className="flex items-center gap-2 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/10 text-xs text-white">
+                    <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
+                    <span>Empowering Indian Farmers</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -294,7 +321,14 @@ function PricePreview() {
             <tbody className="divide-y divide-gray-50">
               {topPrices.map((p) => (
                 <tr key={p.id} className="hover:bg-green-50/30 transition-colors">
-                  <td className="px-5 py-4 font-semibold text-gray-800">{p.crop}</td>
+                  <td className="px-5 py-4 font-semibold text-gray-800 flex items-center gap-3">
+                    <img
+                      src={getCropImage(p.crop)}
+                      alt={p.crop}
+                      className="w-9 h-9 rounded-lg object-cover flex-shrink-0 border border-gray-100 shadow-xs"
+                    />
+                    <span>{p.crop}</span>
+                  </td>
                   <td className="px-5 py-4 text-gray-600 flex items-center gap-1.5">
                     <MapPin className="w-3.5 h-3.5 text-gray-400" />
                     {p.market}

@@ -12,6 +12,7 @@ import {
 import { getPrices, getPriceHistory } from '../services/api';
 import { TrendBadge } from '../components/Badges';
 import { LoadingState, ErrorState } from '../components/States';
+import { getCropImage } from '../utils/cropImages';
 
 const CROPS = ['All', 'Onion', 'Tomato', 'Soybean', 'Cotton', 'Wheat', 'Potato', 'Chilli', 'Rice'];
 const MARKETS = ['All', 'Nashik', 'Lasalgaon', 'Pune', 'Ahmednagar', 'Solapur', 'Aurangabad'];
@@ -175,9 +176,16 @@ export default function PricesPage() {
           )}
           {bestPrice && (
             <div className="mt-4 bg-green-50 border border-green-100 rounded-xl p-3 flex items-center justify-between">
-              <div>
-                <p className="text-xs text-gray-500">Best price today</p>
-                <p className="font-bold text-green-800">{bestPrice.market}</p>
+              <div className="flex items-center gap-3">
+                <img
+                  src={getCropImage(bestPrice.crop)}
+                  alt={bestPrice.crop}
+                  className="w-10 h-10 rounded-lg object-cover border border-green-200 shadow-2xs"
+                />
+                <div>
+                  <p className="text-xs text-gray-500">Best price today</p>
+                  <p className="font-bold text-green-800">{bestPrice.crop} — {bestPrice.market}</p>
+                </div>
               </div>
               <div className="text-right">
                 <p className="text-xl font-bold text-green-800">₹{bestPrice.modal_price.toLocaleString('en-IN')}</p>
@@ -238,7 +246,14 @@ export default function PricesPage() {
               <tbody className="divide-y divide-gray-50">
                 {filtered.map(p => (
                   <tr key={p.id} className="hover:bg-green-50/30 transition-colors">
-                    <td className="px-5 py-3.5 font-semibold text-gray-800">{p.crop}</td>
+                    <td className="px-5 py-3.5 font-semibold text-gray-800 flex items-center gap-2.5">
+                      <img
+                        src={getCropImage(p.crop)}
+                        alt={p.crop}
+                        className="w-7 h-7 rounded-md object-cover flex-shrink-0 border border-gray-100 shadow-2xs"
+                      />
+                      <span>{p.crop}</span>
+                    </td>
                     <td className="px-5 py-3.5 text-gray-600">
                       <span className="flex items-center gap-1.5">
                         <MapPin className="w-3.5 h-3.5 text-gray-400" />

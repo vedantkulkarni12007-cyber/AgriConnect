@@ -9,6 +9,7 @@ import { Star, MapPin, CheckCircle2, Info, Package } from 'lucide-react';
 import { getMatches, createOffer } from '../services/api';
 import { VerifiedBadge } from '../components/Badges';
 import { LoadingState, EmptyState } from '../components/States';
+import { getCropImage } from '../utils/cropImages';
 
 // Individual match card
 function MatchCard({ buyer, onMakeOffer }) {
@@ -165,9 +166,11 @@ export default function MatchesPage() {
       <div className="card bg-green-50 border border-green-200">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-green-200 rounded-xl flex items-center justify-center">
-              <Package className="w-5 h-5 text-green-700" />
-            </div>
+            <img
+              src={getCropImage(lot.crop)}
+              alt={lot.crop}
+              className="w-11 h-11 rounded-xl object-cover border border-green-300 shadow-2xs flex-shrink-0"
+            />
             <div>
               <p className="font-bold text-gray-900">
                 {lot.quantity} {lot.unit || 'Quintal'} · {lot.crop} · Grade {lot.grade}
