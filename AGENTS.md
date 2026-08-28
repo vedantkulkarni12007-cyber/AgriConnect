@@ -19,3 +19,19 @@
 - PostGIS ST_DWithin for geo, never adjacency dict
 - Never bypass backend with frontend demoData — seed DB instead
 - Alembic only for schema, never manual DDL
+- Never push to `main`; use `feature/*` branches + PR; `main` is protected
+- After every push: `git ls-remote`, `gh run list --limit 3`, `gh run view <id> --log-failed`; wait for green before notifying
+
+## Post-Push Checklist (mandatory after `git push`)
+1. `git -C <repo> ls-remote origin <branch>` — verify correct SHA on remote
+2. `gh --repo <org>/<repo> run list --limit 3` — confirm workflow triggered on correct branch
+3. `gh run view <id>` — wait for `✓` both jobs; if `✗`, `gh run view <id> --log-failed` and fix on same feature branch (never on main)
+4. Refresh GitHub `…/commits/<branch>` with Ctrl+Shift+R — ensure no stale red commits visible
+5. If red commits remain as history, squash via `git reset --soft <base> && git commit` + `push --force` on feature branch only
+
+## Lessons Learned (2026-08-28)
+- CI `alembic -c backend/alembic.ini` + `working-directory: backend` → double prefix → `No config file`; fix: `alembic -c alembic.ini` + `pytest -q`
+- CI `on: push: branches: [main]` hid feature branch runs; fix: `branches: [main, "feature/**"]`
+- PostGIS GiST indexes duplicated (`idx_*` + `ix_*` on same GEOGRAPHY) → `relation already exists`; fix: deduplicate + `CREATE INDEX IF NOT EXISTS` via `op.execute`
+- Autogenerate drops tiger/postgis internal tables and `audit_logs`/`outbox_events` if Base misses them; fix: add SystemConfiguration/AuditLog/OutboxEvent to `app.models` + filter or clean migration
+- Force-pushing to main hides history but leaves stale browser cache; always hard refresh and verify via `ls-remote`
