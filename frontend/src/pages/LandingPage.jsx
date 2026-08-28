@@ -43,10 +43,10 @@ function Hero() {
             <BarChart2 className="w-5 h-5" />
             Explore Market Prices
           </Link>
-          <Link to="/register" className="btn-secondary flex items-center gap-2 text-base w-full sm:w-auto justify-center border-white text-white hover:bg-white hover:text-green-800">
-            Get Started Free
-            <ArrowRight className="w-5 h-5" />
-          </Link>
+          <Link to="/register" className="btn-secondary flex items-center gap-2 text-base w-full sm:w-auto justify-center">
+  Get Started Free
+  <ArrowRight className="w-5 h-5" />
+</Link>
         </div>
 
         {/* Stats */}
