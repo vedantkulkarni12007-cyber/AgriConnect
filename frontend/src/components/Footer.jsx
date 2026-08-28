@@ -140,7 +140,7 @@ export default function Footer() {
         </div>
 
         <div className="border-t border-green-800 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-green-400">
-          <p>© 2026 Krishi Link. Built for Smart India Hackathon.</p>
+          <p>© 2026 KrishiLink. Built for Smart India Hackathon.</p>
 
           <p className="text-xs">
             Running in Demo Mode — Prices are sample data for demonstration

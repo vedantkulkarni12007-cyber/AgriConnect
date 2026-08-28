@@ -11,11 +11,13 @@ import {
 } from 'lucide-react';
 import { DEMO_PRICES } from '../data/demoData';
 import { TrendBadge } from '../components/Badges';
+import { useLanguage } from '../hooks/useLanguage';
 
 // -------------------------------------------------------
 // HERO SECTION
 // -------------------------------------------------------
 function Hero() {
+  const { t } = useLanguage();
   return (
     <section className="bg-gradient-to-b from-green-900 to-green-800 text-white pt-16 pb-24 px-4">
       <div className="max-w-6xl mx-auto text-center">
@@ -27,34 +29,33 @@ function Hero() {
 
         {/* Headline */}
         <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight mb-6 text-balance">
-          Know Your Price.<br />
-          Find Your Buyer.<br />
-          <span className="text-green-300">Sell Smarter.</span>
+          {t('knowYourPrice')}<br />
+          {t('findYourBuyer')}<br />
+          <span className="text-green-300">{t('sellSmarter')}</span>
         </h1>
 
         <p className="text-lg sm:text-xl text-green-100 max-w-2xl mx-auto mb-10 leading-relaxed">
-          KrishiLink helps farmers discover better market prices, connect with
-          verified buyers, and keep track of every stage of a sale — all in one place.
+          {t('heroDescription')}
         </p>
 
         {/* CTA Buttons */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
           <Link to="/prices" className="btn-accent flex items-center gap-2 text-base w-full sm:w-auto justify-center">
             <BarChart2 className="w-5 h-5" />
-            Explore Market Prices
+            {t('exploreMarketPrices')}
           </Link>
           <Link to="/register" className="btn-secondary flex items-center gap-2 text-base w-full sm:w-auto justify-center">
-  Get Started Free
-  <ArrowRight className="w-5 h-5" />
-</Link>
+            {t('getStartedFree')}
+            <ArrowRight className="w-5 h-5" />
+          </Link>
         </div>
 
         {/* Stats */}
         <div className="grid grid-cols-3 gap-4 mt-16 max-w-lg mx-auto">
           {[
-            { value: '200+', label: 'Markets Tracked' },
-            { value: '8', label: 'Major Crops' },
-            { value: '100%', label: 'Transparent' },
+            { value: '200+', label: t('marketsTracked') },
+            { value: '8', label: t('majorCrops') },
+            { value: '100%', label: t('transparent') },
           ].map(stat => (
             <div key={stat.label} className="text-center">
               <div className="text-2xl font-bold text-green-300">{stat.value}</div>
@@ -71,31 +72,32 @@ function Hero() {
 // PROBLEM SECTION
 // -------------------------------------------------------
 function Problem() {
+  const { t } = useLanguage();
   const problems = [
     {
       icon: '📊',
-      title: 'Price Uncertainty',
-      desc: 'Farmers often don\'t know the current price in nearby mandis and may accept less than market rate.',
+      title: t('priceUncertainty'),
+      desc: t('priceUncertaintyDesc'),
     },
     {
       icon: '🤝',
-      title: 'Fragmented Buyers',
-      desc: 'Finding trustworthy buyers is difficult. Information about who is buying, at what price, is scattered.',
+      title: t('fragmentedBuyers'),
+      desc: t('fragmentedBuyersDesc'),
     },
     {
       icon: '⚡',
-      title: 'Distress Sales',
-      desc: 'Urgent cash needs force farmers to sell at low prices, sometimes below their cost of production.',
+      title: t('distressSales'),
+      desc: t('distressSalesDesc'),
     },
     {
       icon: '📦',
-      title: 'Small Quantities',
-      desc: 'Individual farmers with small lots have less bargaining power compared to aggregated groups.',
+      title: t('smallQuantities'),
+      desc: t('smallQuantitiesDesc'),
     },
     {
       icon: '📄',
-      title: 'Verbal Agreements',
-      desc: 'Deals made verbally have no record, making it hard to resolve disputes about price or quantity.',
+      title: t('verbalAgreements'),
+      desc: t('verbalAgreementsDesc'),
     },
   ];
 
@@ -103,12 +105,12 @@ function Problem() {
     <section className="py-20 px-4 bg-white">
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-14">
-          <span className="badge-red text-sm mb-3">The Problem</span>
+          <span className="badge-red text-sm mb-3">{t('theProblem')}</span>
           <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mt-2">
-            Challenges Farmers Face Every Day
+            {t('challengesFarmersFace')}
           </h2>
           <p className="text-gray-500 mt-3 max-w-xl mx-auto">
-            Despite growing crops, farmers often receive less than fair value due to information gaps and lack of market access.
+            {t('problemDescription')}
           </p>
         </div>
 
@@ -130,36 +132,37 @@ function Problem() {
 // SOLUTION SECTION
 // -------------------------------------------------------
 function Solution() {
+  const { t } = useLanguage();
   const solutions = [
     {
       icon: BarChart2,
       color: 'bg-green-100 text-green-700',
-      title: 'Price Intelligence',
-      desc: 'See real-time prices from multiple mandis. Compare easily to know where to sell.',
+      title: t('priceIntelligence'),
+      desc: t('priceIntelligenceDesc'),
     },
     {
       icon: TrendingUp,
       color: 'bg-blue-100 text-blue-700',
-      title: 'Trend Signals',
-      desc: 'Know if prices are rising or falling based on 7-day price arithmetic — not guesswork.',
+      title: t('trendSignals'),
+      desc: t('trendSignalsDesc'),
     },
     {
       icon: Users,
       color: 'bg-purple-100 text-purple-700',
-      title: 'Buyer Matching',
-      desc: 'Get matched to verified buyers based on crop, grade, quantity and location.',
+      title: t('buyerMatching'),
+      desc: t('buyerMatchingDesc'),
     },
     {
       icon: Truck,
       color: 'bg-orange-100 text-orange-700',
-      title: 'Logistics & Storage',
-      desc: 'Locate nearby warehouses, cold storage and logistics options on an interactive map.',
+      title: t('logisticsStorage'),
+      desc: t('logisticsStorageDesc'),
     },
     {
       icon: ShieldCheck,
       color: 'bg-teal-100 text-teal-700',
-      title: 'Transaction & Trust',
-      desc: 'Track every step of a sale with a complete transparent record from offer to payment.',
+      title: t('transactionTrust'),
+      desc: t('transactionTrustDesc'),
     },
   ];
 
@@ -167,12 +170,12 @@ function Solution() {
     <section className="py-20 px-4 bg-[#FAFAF7]">
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-14">
-          <span className="badge-green text-sm mb-3">The Solution</span>
+          <span className="badge-green text-sm mb-3">{t('theSolution')}</span>
           <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mt-2">
-            Everything a Farmer Needs in One Place
+            {t('everythingFarmerNeeds')}
           </h2>
           <p className="text-gray-500 mt-3 max-w-xl mx-auto">
-            KrishiLink gives you five core tools to earn better from every harvest.
+            {t('solutionDescription')}
           </p>
         </div>
 
@@ -199,21 +202,22 @@ function Solution() {
 // HOW IT WORKS SECTION
 // -------------------------------------------------------
 function HowItWorks() {
+  const { t } = useLanguage();
   const steps = [
-    { step: '01', title: 'Check Prices',     desc: 'See today\'s prices across all nearby mandis for your crop.' },
-    { step: '02', title: 'List Produce',     desc: 'Create a listing with your crop, quantity, grade and expected price.' },
-    { step: '03', title: 'Find Buyers',      desc: 'Get matched to verified buyers based on your listing details.' },
-    { step: '04', title: 'Receive an Offer', desc: 'Buyers submit offers. Review and accept or negotiate.' },
-    { step: '05', title: 'Complete Sale',    desc: 'Track dispatch, payment, and get a full transaction record.' },
+    { step: '01', title: t('checkPrices'),     desc: t('checkPricesDesc') },
+    { step: '02', title: t('listProduce'),     desc: t('listProduceDesc') },
+    { step: '03', title: t('findBuyers'),      desc: t('findBuyersDesc') },
+    { step: '04', title: t('receiveOffer'),    desc: t('receiveOfferDesc') },
+    { step: '05', title: t('completeSale'),    desc: t('completeSaleDesc') },
   ];
 
   return (
     <section id="how-it-works" className="py-20 px-4 bg-white">
       <div className="max-w-5xl mx-auto">
         <div className="text-center mb-14">
-          <span className="badge-blue text-sm mb-3">How It Works</span>
+          <span className="badge-blue text-sm mb-3">{t('howItWorksTitle')}</span>
           <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mt-2">
-            Sell Your Crop in 5 Simple Steps
+            {t('sellCropFiveSteps')}
           </h2>
         </div>
 
@@ -241,7 +245,7 @@ function HowItWorks() {
 
         <div className="text-center mt-10">
           <Link to="/login" className="btn-primary inline-flex items-center gap-2">
-            Start Your Journey
+            {t('startYourJourney')}
             <ArrowRight className="w-5 h-5" />
           </Link>
         </div>
@@ -254,6 +258,7 @@ function HowItWorks() {
 // PRICE PREVIEW SECTION
 // -------------------------------------------------------
 function PricePreview() {
+  const { t } = useLanguage();
   const topPrices = DEMO_PRICES.slice(0, 6);
 
   return (
@@ -261,16 +266,16 @@ function PricePreview() {
       <div className="max-w-6xl mx-auto">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-10">
           <div>
-            <span className="badge-yellow text-sm mb-2 block">Live Demo Data</span>
+            <span className="badge-yellow text-sm mb-2 block">{t('liveDemoData')}</span>
             <h2 className="text-2xl lg:text-3xl font-bold text-gray-900">
-              Today's Market Prices
+              {t('todaysMarketPrices')}
             </h2>
             <p className="text-gray-500 text-sm mt-1">
-              Sample mandi data — realistic prices for demonstration
+              {t('sampleMandiData')}
             </p>
           </div>
           <Link to="/prices" className="btn-secondary btn-sm flex items-center gap-2 whitespace-nowrap">
-            View All Prices
+            {t('viewAllPrices')}
             <ArrowUpRight className="w-4 h-4" />
           </Link>
         </div>
@@ -279,11 +284,11 @@ function PricePreview() {
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-100">
               <tr>
-                <th className="text-left px-5 py-3.5 text-sm font-semibold text-gray-600">Crop</th>
-                <th className="text-left px-5 py-3.5 text-sm font-semibold text-gray-600">Market</th>
-                <th className="text-right px-5 py-3.5 text-sm font-semibold text-gray-600">Modal Price</th>
-                <th className="text-right px-5 py-3.5 text-sm font-semibold text-gray-600 hidden sm:table-cell">Min / Max</th>
-                <th className="text-center px-5 py-3.5 text-sm font-semibold text-gray-600">Trend</th>
+                <th className="text-left px-5 py-3.5 text-sm font-semibold text-gray-600">{t('crop')}</th>
+                <th className="text-left px-5 py-3.5 text-sm font-semibold text-gray-600">{t('market')}</th>
+                <th className="text-right px-5 py-3.5 text-sm font-semibold text-gray-600">{t('modalPrice')}</th>
+                <th className="text-right px-5 py-3.5 text-sm font-semibold text-gray-600 hidden sm:table-cell">{t('minMax')}</th>
+                <th className="text-center px-5 py-3.5 text-sm font-semibold text-gray-600">{t('trend')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
@@ -311,7 +316,7 @@ function PricePreview() {
         </div>
 
         <p className="text-xs text-gray-400 mt-3 text-center">
-          * Demo data only. Trend signals are calculated using 7-day price arithmetic — not AI prediction.
+          {t('demoDataOnly')}
         </p>
       </div>
     </section>
@@ -322,11 +327,12 @@ function PricePreview() {
 // TRUST SECTION
 // -------------------------------------------------------
 function TrustSection() {
+  const { t } = useLanguage();
   const features = [
-    { icon: ShieldCheck, title: 'Verified Buyers', desc: 'Every buyer is reviewed before listing.' },
-    { icon: CheckCircle2, title: 'Transparent Offers', desc: 'All offer details are visible and recorded.' },
-    { icon: BarChart2, title: 'Transaction History', desc: 'Complete record of every deal.' },
-    { icon: Star, title: 'Grievance System', desc: 'File and track disputes easily.' },
+    { icon: ShieldCheck, title: t('verified'), desc: t('verifiedBuyersDesc') },
+    { icon: CheckCircle2, title: t('transparent'), desc: t('transparentOffersDesc') },
+    { icon: BarChart2, title: t('transactions'), desc: t('transactionHistoryDesc') },
+    { icon: Star, title: t('grievances'), desc: t('grievanceSystemDesc') },
   ];
 
   return (
@@ -334,10 +340,10 @@ function TrustSection() {
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-14">
           <h2 className="text-3xl lg:text-4xl font-bold mb-3">
-            Built on Trust and Transparency
+            {t('builtOnTrust')}
           </h2>
           <p className="text-green-200 max-w-xl mx-auto">
-            Every feature in KrishiLink is designed to give farmers information and confidence.
+            {t('trustDescription')}
           </p>
         </div>
 
@@ -356,7 +362,7 @@ function TrustSection() {
 
         <div className="text-center mt-12">
           <Link to="/register" className="btn-accent inline-flex items-center gap-2 text-base">
-            Join KrishiLink Today
+            {t('joinKrishiLinkToday')}
             <ArrowRight className="w-5 h-5" />
           </Link>
         </div>

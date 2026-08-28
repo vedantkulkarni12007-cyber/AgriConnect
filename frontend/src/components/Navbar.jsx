@@ -67,9 +67,13 @@ export default function Navbar() {
               onChange={(e) => changeLanguage(e.target.value)}
               className="text-sm border border-gray-200 rounded-lg px-2 py-1.5 text-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500 cursor-pointer bg-white"
             >
-              <option value="en">EN</option>
-              <option value="mr">मर</option>
-              <option value="hi">हि</option>
+              <option value="en">English</option>
+              <option value="mr">मराठी</option>
+              <option value="hi">हिंदी</option>
+              <option value="bn">বাংলা</option>
+              <option value="ta">தமிழ்</option>
+              <option value="te">తెలుగు</option>
+              <option value="kn">ಕನ್ನಡ</option>
             </select>
 
             {isLoggedIn ? (
@@ -133,6 +137,10 @@ export default function Navbar() {
               <option value="en">English</option>
               <option value="mr">मराठी</option>
               <option value="hi">हिंदी</option>
+              <option value="bn">বাংলা</option>
+              <option value="ta">தமிழ்</option>
+              <option value="te">తెలుగు</option>
+              <option value="kn">ಕನ್ನಡ</option>
             </select>
             {isLoggedIn ? (
               <>
