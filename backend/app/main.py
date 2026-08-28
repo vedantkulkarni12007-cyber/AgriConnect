@@ -19,6 +19,9 @@ from app.modules.reservations.router import router as reservations_router
 from app.modules.transactions.router import router as transactions_router
 from app.modules.storage.router import router as storage_router
 from app.modules.disputes.router import router as disputes_router
+from app.modules.notifications.router import router as notifications_router
+from app.modules.admin.router import router as admin_router
+from app.modules.metrics.router import router as metrics_router
 
 def create_app() -> FastAPI:
     app = FastAPI(
@@ -63,6 +66,9 @@ def create_app() -> FastAPI:
     app.include_router(transactions_router, prefix=settings.api_v1_prefix)
     app.include_router(storage_router, prefix=settings.api_v1_prefix)
     app.include_router(disputes_router, prefix=settings.api_v1_prefix)
+    app.include_router(notifications_router, prefix=settings.api_v1_prefix)
+    app.include_router(admin_router, prefix=settings.api_v1_prefix)
+    app.include_router(metrics_router)
 
     @app.get("/", include_in_schema=False)
     def root():
