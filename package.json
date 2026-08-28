@@ -1,0 +1,29 @@
+{
+  "name": "krishilink",
+  "version": "1.0.0",
+  "description": "**\"Better Prices. Better Buyers. Better Decisions.\"**",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+  "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
+  "dev:frontend": "npm --prefix frontend run dev",
+  "dev:backend": "python backend/app.py"
+},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vedantkulkarni12007-cyber/KrishiLink.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/vedantkulkarni12007-cyber/KrishiLink/issues"
+  },
+  "homepage": "https://github.com/vedantkulkarni12007-cyber/KrishiLink#readme",
+  "devDependencies": {
+    "concurrently": "^10.0.5"
+  }
+}
