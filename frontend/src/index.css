@@ -69,14 +69,43 @@
     @apply px-4 py-2 text-sm rounded-lg;
   }
 
-  /* Card styles */
+  /* Card styles — 3-level hierarchy */
+
+  /* Standard card */
   .card {
     @apply bg-white rounded-2xl shadow-sm border border-gray-100 p-6;
   }
 
- .card-hover { 
-  @apply bg-white rounded-2xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow duration-200; 
-}
+  /* Primary / hero card — stronger shadow + green left accent */
+  .card-primary {
+    @apply bg-white rounded-2xl shadow-md border border-green-100 p-6 relative overflow-hidden;
+    border-left: 4px solid #2D6A4F;
+  }
+
+  /* Supporting / sidebar card — lighter, less padding */
+  .card-supporting {
+    @apply bg-white rounded-xl shadow-sm border border-gray-100 p-4;
+  }
+
+  .card-hover { 
+    @apply bg-white rounded-2xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow duration-200; 
+  }
+
+  /* Section eyebrow label */
+  .section-label {
+    @apply text-xs font-bold tracking-widest text-green-700 uppercase mb-1;
+  }
+
+  /* Large stat number for hero cards */
+  .stat-number {
+    @apply text-4xl font-extrabold text-green-900 tracking-tight leading-none;
+  }
+
+  /* Colored left accent bar for summary cards */
+  .accent-bar-green { border-left: 3px solid #2D6A4F; }
+  .accent-bar-blue  { border-left: 3px solid #2563EB; }
+  .accent-bar-purple{ border-left: 3px solid #7C3AED; }
+  .accent-bar-amber { border-left: 3px solid #D97706; }
 
   /* Badge styles */
   .badge-green {

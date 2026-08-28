@@ -82,13 +82,17 @@ export default function PricesPage() {
     .filter(p => p.crop === selectedCrop)
     .map(p => ({ market: p.market, price: p.modal_price }));
 
+  // Best price overall for highlight in table
+  const maxPriceValue = filtered.length > 0 ? Math.max(...filtered.map(p => p.modal_price)) : 0;
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
       {/* Header */}
       <div>
+        <p className="section-label">Live Demo Data</p>
         <h1 className="text-2xl font-bold text-gray-900">Today's Market Prices</h1>
         <p className="text-gray-500 text-sm mt-1">
-          Current modal prices from mandis across Maharashtra — Demo Data
+          Current modal prices from mandis across Maharashtra
         </p>
       </div>
 
@@ -146,11 +150,11 @@ export default function PricesPage() {
         <div className="card">
           <div className="flex items-center justify-between mb-4">
             <div>
+              <p className="section-label">Historical Data</p>
               <h2 className="text-base font-bold text-gray-900">15-Day Price Trend</h2>
-              <p className="text-xs text-gray-400 mt-0.5">Historical modal prices</p>
             </div>
             <select
-              className="input text-sm w-36"
+              className="input text-sm w-36 py-1.5 px-3 min-h-[36px]"
               value={selectedCrop}
               onChange={(e) => setSelectedCrop(e.target.value)}
             >
@@ -183,12 +187,12 @@ export default function PricesPage() {
                   className="w-10 h-10 rounded-lg object-cover border border-green-200 shadow-2xs"
                 />
                 <div>
-                  <p className="text-xs text-gray-500">Best price today</p>
+                  <p className="text-xs text-gray-500 font-semibold">Best price today</p>
                   <p className="font-bold text-green-800">{bestPrice.crop} — {bestPrice.market}</p>
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-xl font-bold text-green-800">₹{bestPrice.modal_price.toLocaleString('en-IN')}</p>
+                <p className="text-xl font-bold text-green-800 tracking-tight">₹{bestPrice.modal_price.toLocaleString('en-IN')}</p>
                 <p className="text-xs text-gray-400">per quintal</p>
               </div>
             </div>
@@ -197,8 +201,11 @@ export default function PricesPage() {
 
         {/* Market comparison bar chart */}
         <div className="card">
-          <h2 className="text-base font-bold text-gray-900 mb-1">Market Comparison</h2>
-          <p className="text-xs text-gray-400 mb-4">Modal price across markets for {selectedCrop}</p>
+          <div className="mb-4">
+            <p className="section-label">Across Markets</p>
+            <h2 className="text-base font-bold text-gray-900 mb-1">Market Comparison</h2>
+            <p className="text-xs text-gray-400 mb-2">Modal price across markets for {selectedCrop}</p>
+          </div>
           {marketComparison.length > 0 ? (
             <div className="h-52">
               <ResponsiveContainer width="100%" height="100%">
@@ -226,49 +233,60 @@ export default function PricesPage() {
         <ErrorState message={error} onRetry={loadPrices} />
       ) : (
         <div className="card p-0 overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-100">
-            <h2 className="font-bold text-gray-900">Price Details</h2>
-            <p className="text-xs text-gray-400 mt-0.5">{filtered.length} records</p>
+          <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-white sticky left-0">
+            <div>
+              <h2 className="font-bold text-gray-900">Price Details</h2>
+              <p className="text-xs text-gray-400 mt-0.5">Showing {filtered.length} records</p>
+            </div>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50">
+              <thead className="bg-[#f0f9f4]">
                 <tr>
-                  <th className="text-left px-5 py-3 text-sm font-semibold text-gray-600">Crop</th>
-                  <th className="text-left px-5 py-3 text-sm font-semibold text-gray-600">Market</th>
-                  <th className="text-right px-5 py-3 text-sm font-semibold text-gray-600">Min</th>
-                  <th className="text-right px-5 py-3 text-sm font-semibold text-gray-600">Modal</th>
-                  <th className="text-right px-5 py-3 text-sm font-semibold text-gray-600">Max</th>
-                  <th className="text-right px-5 py-3 text-sm font-semibold text-gray-600 hidden md:table-cell">Volume (T)</th>
-                  <th className="text-center px-5 py-3 text-sm font-semibold text-gray-600">Trend</th>
+                  <th className="text-left px-5 py-3 text-sm font-semibold text-green-800">Crop</th>
+                  <th className="text-left px-5 py-3 text-sm font-semibold text-green-800">Market</th>
+                  <th className="text-right px-5 py-3 text-sm font-semibold text-green-800">Min</th>
+                  <th className="text-right px-5 py-3 text-sm font-semibold text-green-800">Modal</th>
+                  <th className="text-right px-5 py-3 text-sm font-semibold text-green-800">Max</th>
+                  <th className="text-right px-5 py-3 text-sm font-semibold text-green-800 hidden md:table-cell">Volume (T)</th>
+                  <th className="text-center px-5 py-3 text-sm font-semibold text-green-800">Trend</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50">
-                {filtered.map(p => (
-                  <tr key={p.id} className="hover:bg-green-50/30 transition-colors">
-                    <td className="px-5 py-3.5 font-semibold text-gray-800 flex items-center gap-2.5">
-                      <img
-                        src={getCropImage(p.crop)}
-                        alt={p.crop}
-                        className="w-7 h-7 rounded-md object-cover flex-shrink-0 border border-gray-100 shadow-2xs"
-                      />
-                      <span>{p.crop}</span>
-                    </td>
-                    <td className="px-5 py-3.5 text-gray-600">
-                      <span className="flex items-center gap-1.5">
-                        <MapPin className="w-3.5 h-3.5 text-gray-400" />
-                        {p.market}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3.5 text-right text-gray-600">₹{p.min_price.toLocaleString('en-IN')}</td>
-                    <td className="px-5 py-3.5 text-right font-bold text-green-800">₹{p.modal_price.toLocaleString('en-IN')}</td>
-                    <td className="px-5 py-3.5 text-right text-gray-600">₹{p.max_price.toLocaleString('en-IN')}</td>
-                    <td className="px-5 py-3.5 text-right text-gray-500 hidden md:table-cell">{p.volume}</td>
-                    <td className="px-5 py-3.5 text-center">
-                      <TrendBadge trend={p.trend} change={p.change_pct} />
-                    </td>
-                  </tr>
-                ))}
+              <tbody className="divide-y divide-gray-50 bg-white">
+                {filtered.map(p => {
+                  const isBest = p.modal_price === maxPriceValue && filtered.length > 1;
+                  return (
+                    <tr key={p.id} className={`transition-colors ${isBest ? 'bg-green-50/50' : 'hover:bg-green-50/30'}`}>
+                      <td className="px-5 py-3.5 font-semibold text-gray-800">
+                        <div className="flex items-center gap-2.5">
+                          {isBest && <div className="absolute left-0 w-1 h-10 bg-green-500 rounded-r" />}
+                          <img
+                            src={getCropImage(p.crop)}
+                            alt={p.crop}
+                            className="w-8 h-8 rounded-md object-cover flex-shrink-0 border border-gray-100 shadow-sm"
+                          />
+                          <span>{p.crop}</span>
+                          {isBest && <span className="ml-1 text-[10px] font-bold bg-green-200 text-green-800 px-1.5 py-0.5 rounded-full">BEST</span>}
+                        </div>
+                      </td>
+                      <td className="px-5 py-3.5 text-gray-600">
+                        <span className="flex items-center gap-1.5">
+                          <MapPin className="w-3.5 h-3.5 text-gray-400" />
+                          {p.market}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3.5 text-right text-gray-500">₹{p.min_price.toLocaleString('en-IN')}</td>
+                      <td className={`px-5 py-3.5 text-right font-bold ${isBest ? 'text-green-700 text-lg' : 'text-gray-900'}`}>
+                        ₹{p.modal_price.toLocaleString('en-IN')}
+                      </td>
+                      <td className="px-5 py-3.5 text-right text-gray-500">₹{p.max_price.toLocaleString('en-IN')}</td>
+                      <td className="px-5 py-3.5 text-right text-gray-500 hidden md:table-cell">{p.volume}</td>
+                      <td className="px-5 py-3.5 text-center">
+                        <TrendBadge trend={p.trend} change={p.change_pct} />
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

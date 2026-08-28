@@ -21,21 +21,98 @@ import { DEMO_BUYERS, DEMO_STORAGE, DEMO_LOTS } from '../data/demoData';
 import { TrendBadge, VerifiedBadge, StatusBadge } from '../components/Badges';
 import { LoadingState } from '../components/States';
 
-// ---- Summary Card ----
-function SummaryCard({ title, value, sub, icon: Icon, color }) {
+// ---- Summary Card (secondary level) ----
+function SummaryCard({ title, value, sub, icon: Icon, color, accent }) {
   return (
-    <div className="card flex items-start gap-4">
-      <div className={`w-12 h-12 ${color} rounded-xl flex items-center justify-center flex-shrink-0`}>
-        <Icon className="w-6 h-6" />
+    <div className={`card flex items-start gap-4 ${accent}`}>
+      <div className={`w-11 h-11 ${color} rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm`}>
+        <Icon className="w-5 h-5" />
       </div>
-      <div>
-        <p className="text-sm text-gray-500 font-medium">{title}</p>
-        <p className="text-2xl font-bold text-gray-900 mt-0.5">{value}</p>
-        {sub && <p className="text-xs text-gray-400 mt-0.5">{sub}</p>}
+      <div className="min-w-0">
+        <p className="text-xs text-gray-500 font-medium">{title}</p>
+        <p className="text-2xl font-bold text-gray-900 mt-0.5 leading-tight">{value}</p>
+        {sub && <p className="text-xs text-gray-400 mt-0.5 truncate">{sub}</p>}
       </div>
     </div>
   );
 }
+
+// ---- Best Price Hero Card (primary level) ----
+function BestPriceHeroCard({ trendData, prices, selectedCrop }) {
+  const best = prices
+    .filter(p => p.crop === selectedCrop)
+    .sort((a, b) => b.modal_price - a.modal_price)[0];
+
+  if (!best) return null;
+
+  const isRising = trendData?.trend === 'RISING';
+  const isFalling = trendData?.trend === 'FALLING';
+
+  return (
+    <div className="card-primary col-span-2 relative overflow-hidden">
+      {/* Decorative background circle */}
+      <div className="absolute -right-8 -top-8 w-40 h-40 bg-green-50 rounded-full opacity-60 pointer-events-none" />
+      <div className="absolute -right-4 -bottom-8 w-24 h-24 bg-green-100 rounded-full opacity-40 pointer-events-none" />
+
+      <div className="relative flex items-start justify-between gap-4">
+        <div className="flex-1 min-w-0">
+          <p className="section-label">Today's Best Price</p>
+          <div className="flex items-end gap-3 mt-1 flex-wrap">
+            <span className="stat-number">₹{best.modal_price.toLocaleString('en-IN')}</span>
+            <span className="text-sm text-gray-500 mb-1 font-medium">per quintal</span>
+          </div>
+
+          {/* Market + crop info */}
+          <div className="flex items-center gap-2 mt-2">
+            <MapPin className="w-3.5 h-3.5 text-green-600 flex-shrink-0" />
+            <span className="text-sm font-semibold text-gray-700">{best.market}</span>
+            <span className="text-gray-300">·</span>
+            <span className="text-sm text-gray-500">{best.crop}</span>
+          </div>
+
+          {/* Trend indicator */}
+          {trendData && (
+            <div className="flex items-center gap-2 mt-3">
+              {isRising ? (
+                <span className="inline-flex items-center gap-1.5 bg-green-100 text-green-700 text-xs font-bold px-3 py-1.5 rounded-full border border-green-200">
+                  <TrendingUp className="w-3.5 h-3.5" />
+                  Rising {trendData.percentage_change > 0 ? `+${trendData.percentage_change}%` : ''}
+                </span>
+              ) : isFalling ? (
+                <span className="inline-flex items-center gap-1.5 bg-red-100 text-red-700 text-xs font-bold px-3 py-1.5 rounded-full border border-red-200">
+                  <TrendingDown className="w-3.5 h-3.5" />
+                  Falling {trendData.percentage_change}%
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 bg-amber-100 text-amber-700 text-xs font-bold px-3 py-1.5 rounded-full border border-amber-200">
+                  <Minus className="w-3.5 h-3.5" />
+                  Stable
+                </span>
+              )}
+              <span className="text-xs text-gray-400">7-day signal</span>
+            </div>
+          )}
+        </div>
+
+        {/* Crop image */}
+        <img
+          src={getCropImage(best.crop)}
+          alt={best.crop}
+          className="w-20 h-20 rounded-2xl object-cover border-2 border-green-100 shadow-md flex-shrink-0"
+        />
+      </div>
+
+      {/* Bottom row — min/max context */}
+      <div className="mt-4 pt-4 border-t border-green-100 flex items-center gap-6 text-xs text-gray-500">
+        <span>Min: <strong className="text-gray-700">₹{best.min_price.toLocaleString('en-IN')}</strong></span>
+        <span>Max: <strong className="text-gray-700">₹{best.max_price.toLocaleString('en-IN')}</strong></span>
+        <span>Vol: <strong className="text-gray-700">{best.volume}T</strong></span>
+        <span className="ml-auto text-[10px] bg-green-100 text-green-700 font-bold px-2 py-1 rounded-full">Best nearby price</span>
+      </div>
+    </div>
+  );
+}
+
 
 // ---- Trend Info Box ----
 function TrendInfoBox({ trendData, crop }) {
@@ -108,28 +185,43 @@ export default function FarmerDashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            {greeting}, {user?.name?.split(' ')[0]} 👋
-          </h1>
-          <div className="flex items-center gap-1.5 text-gray-500 text-sm mt-1">
-            <MapPin className="w-4 h-4" />
-            {user?.location || 'Nashik, Maharashtra'}
+      {/* Header Banner */}
+      <div className="bg-gradient-to-r from-green-900 to-green-800 rounded-2xl p-6 sm:p-8 text-white shadow-md relative overflow-hidden">
+        {/* Subtle background pattern/glow */}
+        <div className="absolute -right-20 -top-20 w-64 h-64 bg-green-700 rounded-full opacity-50 blur-3xl" />
+        <div className="absolute right-10 -bottom-10 w-40 h-40 bg-green-500 rounded-full opacity-20 blur-2xl" />
+
+        <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold mb-2">
+              {greeting}, {user?.name?.split(' ')[0]} 👋
+            </h1>
+            <div className="flex items-center gap-4 text-green-100 text-sm">
+              <span className="flex items-center gap-1.5 bg-white/10 px-3 py-1 rounded-full backdrop-blur-sm">
+                <MapPin className="w-4 h-4" />
+                {user?.location || 'Nashik, Maharashtra'}
+              </span>
+            </div>
           </div>
+          <Link to="/sell" className="bg-white text-green-900 hover:bg-green-50 font-bold px-6 py-3 rounded-xl transition-all shadow-sm flex items-center gap-2 whitespace-nowrap active:scale-95">
+            + List Produce
+          </Link>
         </div>
-        <Link to="/sell" className="btn-primary flex items-center gap-2 whitespace-nowrap">
-          + List Produce
-        </Link>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <SummaryCard title="Today's Best Price" value="₹1,920" sub="Onion — Lasalgaon" icon={IndianRupee} color="bg-green-100 text-green-700" />
-        <SummaryCard title="Active Listings" value="2" sub="500 qtl Onion, 80 qtl Tomato" icon={Package} color="bg-blue-100 text-blue-700" />
-        <SummaryCard title="Offers Received" value="3" sub="2 pending, 1 accepted" icon={FileText} color="bg-purple-100 text-purple-700" />
-        <SummaryCard title="Pending Payments" value="₹2.3L" sub="1 transaction pending" icon={Wallet} color="bg-amber-100 text-amber-700" />
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
+        {/* Primary Hero Card */}
+        <div className="xl:col-span-2">
+          <BestPriceHeroCard trendData={trendData} prices={prices} selectedCrop={selectedCrop} />
+        </div>
+        
+        {/* Secondary Summary Cards */}
+        <div className="xl:col-span-3 grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <SummaryCard title="Active Listings" value="2" sub="500qtl Onion, 80qtl Tomato" icon={Package} color="bg-blue-50 text-blue-600" accent="accent-bar-blue" />
+          <SummaryCard title="Offers Received" value="3" sub="2 pending, 1 accepted" icon={FileText} color="bg-purple-50 text-purple-600" accent="accent-bar-purple" />
+          <SummaryCard title="Pending Payments" value="₹2.3L" sub="1 transaction pending" icon={Wallet} color="bg-amber-50 text-amber-600" accent="accent-bar-amber" />
+        </div>
       </div>
 
       {/* Main content grid */}
@@ -142,6 +234,7 @@ export default function FarmerDashboard() {
           <div className="card">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
               <div>
+                <p className="section-label">Market Intelligence</p>
                 <h2 className="text-lg font-bold text-gray-900">Price Trend</h2>
                 <p className="text-xs text-gray-400 mt-0.5">7-day rule-based signal — not AI prediction</p>
               </div>
@@ -232,7 +325,10 @@ export default function FarmerDashboard() {
           {/* Market Prices Table */}
           <div className="card">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-gray-900">Today's Market Prices</h2>
+              <div>
+                <p className="section-label">Live Data</p>
+                <h2 className="text-lg font-bold text-gray-900">Today's Market Prices</h2>
+              </div>
               <Link to="/prices" className="text-green-700 text-sm font-semibold flex items-center gap-1 hover:underline">
                 View All <ArrowUpRight className="w-4 h-4" />
               </Link>
@@ -288,7 +384,12 @@ export default function FarmerDashboard() {
         <div className="space-y-6">
           {/* Nearby Buyers */}
           <div className="card">
-            <h2 className="text-base font-bold text-gray-900 mb-4">Nearby Buyers</h2>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="section-label">Connections</p>
+                <h2 className="text-base font-bold text-gray-900">Nearby Buyers</h2>
+              </div>
+            </div>
             <div className="space-y-3">
               {DEMO_BUYERS.slice(0, 3).map(buyer => (
                 <div key={buyer.id} className="border border-gray-100 rounded-xl p-3 hover:border-green-200 transition-colors">
@@ -323,7 +424,10 @@ export default function FarmerDashboard() {
 
           {/* Nearby Storage */}
           <div className="card">
-            <h2 className="text-base font-bold text-gray-900 mb-4">Nearby Storage</h2>
+            <div className="mb-4">
+              <p className="section-label">Logistics</p>
+              <h2 className="text-base font-bold text-gray-900">Nearby Storage</h2>
+            </div>
             <div className="space-y-3">
               {DEMO_STORAGE.slice(0, 2).map(s => (
                 <div key={s.id} className="border border-gray-100 rounded-xl p-3">
@@ -345,7 +449,10 @@ export default function FarmerDashboard() {
 
           {/* Recent Activity */}
           <div className="card">
-            <h2 className="text-base font-bold text-gray-900 mb-4">Recent Activity</h2>
+            <div className="mb-4">
+              <p className="section-label">Overview</p>
+              <h2 className="text-base font-bold text-gray-900">Recent Activity</h2>
+            </div>
             <div className="space-y-3">
               {activity.map((item, i) => {
                 const Icon = item.icon;

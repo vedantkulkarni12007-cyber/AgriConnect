@@ -67,30 +67,35 @@ export default function DashboardLayout() {
   const Sidebar = ({ mobile = false }) => (
     <div className={`flex flex-col h-full ${mobile ? 'w-full' : 'w-64'}`}>
       {/* Logo */}
-      <div className="flex items-center gap-2 px-6 py-5 border-b border-green-700">
-        <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
+      <div className="flex items-center gap-3 px-6 py-5 border-b border-green-700/50">
+        <div className="w-9 h-9 bg-white/15 rounded-xl flex items-center justify-center shadow-inner">
           <Sprout className="w-5 h-5 text-white" />
         </div>
-        <span className="text-white font-bold text-lg">KrishiLink</span>
+        <div>
+          <span className="text-white font-bold text-lg leading-none">KrishiLink</span>
+          <p className="text-green-300 text-[10px] font-medium tracking-wide mt-0.5">Agri Marketplace</p>
+        </div>
       </div>
 
       {/* User info */}
-      <div className="px-4 py-4 border-b border-green-700">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-white/20 rounded-full flex items-center justify-center">
-            <span className="text-white font-bold text-sm">
+      <div className="px-4 py-4 border-b border-green-700/50">
+        <div className="flex items-center gap-3 bg-white/10 rounded-xl px-3 py-2.5">
+          <div className="w-9 h-9 bg-gradient-to-br from-green-300 to-green-500 rounded-full flex items-center justify-center flex-shrink-0 shadow-sm">
+            <span className="text-green-900 font-bold text-sm">
               {user?.name?.[0] || 'U'}
             </span>
           </div>
           <div className="min-w-0">
-            <p className="text-white font-semibold text-sm truncate">{user?.name}</p>
-            <p className="text-green-200 text-xs capitalize">{user?.role}</p>
+            <p className="text-white font-semibold text-sm truncate leading-tight">{user?.name}</p>
+            <span className="inline-block bg-green-600/40 text-green-200 text-[10px] font-bold px-1.5 py-0.5 rounded-full capitalize mt-0.5">
+              {user?.role}
+            </span>
           </div>
         </div>
       </div>
 
       {/* Nav Links */}
-      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+      <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = location.pathname === item.href;
@@ -99,27 +104,27 @@ export default function DashboardLayout() {
               key={item.href + item.label}
               to={item.href}
               onClick={() => setSidebarOpen(false)}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 ${
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 group ${
                 isActive
                   ? 'bg-white text-green-800 shadow-sm'
-                  : 'text-green-100 hover:bg-white/10'
+                  : 'text-green-100 hover:bg-white/10 hover:text-white'
               }`}
             >
-              <Icon className="w-5 h-5 flex-shrink-0" />
-              {item.label}
-              {isActive && <ChevronRight className="w-4 h-4 ml-auto" />}
+              <Icon className={`w-4.5 h-4.5 flex-shrink-0 ${isActive ? 'text-green-700' : 'text-green-300 group-hover:text-white'}`} />
+              <span className="flex-1">{item.label}</span>
+              {isActive && <div className="w-1.5 h-1.5 bg-green-600 rounded-full" />}
             </Link>
           );
         })}
       </nav>
 
       {/* Logout */}
-      <div className="px-3 py-4 border-t border-green-700">
+      <div className="px-3 py-4 border-t border-green-700/50">
         <button
           onClick={handleLogout}
-          className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-green-100 hover:bg-white/10 text-sm font-medium transition-all"
+          className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-green-200 hover:bg-white/10 hover:text-white text-sm font-medium transition-all"
         >
-          <LogOut className="w-5 h-5" />
+          <LogOut className="w-4.5 h-4.5" />
           Logout
         </button>
       </div>
@@ -128,8 +133,8 @@ export default function DashboardLayout() {
 
   return (
     <div className="min-h-screen bg-[#FAFAF7] flex">
-      {/* Desktop Sidebar */}
-      <div className="hidden lg:flex flex-col w-64 bg-green-800 fixed top-0 left-0 h-screen z-30">
+      {/* Desktop Sidebar — gradient for depth */}
+      <div className="hidden lg:flex flex-col w-64 bg-gradient-to-b from-green-900 to-green-800 fixed top-0 left-0 h-screen z-30 shadow-xl">
         <Sidebar />
       </div>
 
@@ -142,7 +147,7 @@ export default function DashboardLayout() {
       )}
 
       {/* Mobile Sidebar */}
-      <div className={`fixed top-0 left-0 h-screen w-72 bg-green-800 z-50 transition-transform duration-300 lg:hidden ${
+      <div className={`fixed top-0 left-0 h-screen w-72 bg-gradient-to-b from-green-900 to-green-800 z-50 transition-transform duration-300 lg:hidden shadow-2xl ${
         sidebarOpen ? 'translate-x-0' : '-translate-x-full'
       }`}>
         <Sidebar mobile />
@@ -151,8 +156,8 @@ export default function DashboardLayout() {
       {/* Main content area */}
       <div className="flex-1 lg:ml-64 flex flex-col min-h-screen">
         {/* Top bar */}
-        <header className="bg-white border-b border-gray-100 shadow-sm sticky top-0 z-20">
-          <div className="flex items-center justify-between px-4 py-3">
+        <header className="bg-white border-b border-gray-100 sticky top-0 z-20 shadow-sm">
+          <div className="flex items-center justify-between px-4 lg:px-6 py-3">
             {/* Mobile menu toggle */}
             <button
               className="lg:hidden p-2 rounded-lg hover:bg-gray-100"
@@ -161,11 +166,17 @@ export default function DashboardLayout() {
               <Menu className="w-5 h-5 text-gray-600" />
             </button>
 
-            {/* Page breadcrumb */}
-            <div className="hidden lg:block">
-              <p className="text-sm text-gray-500">
-                Welcome back, <span className="font-semibold text-gray-800">{user?.name?.split(' ')[0]}</span>
-              </p>
+            {/* Page info — desktop */}
+            <div className="hidden lg:flex items-center gap-3">
+              <div className="h-5 w-0.5 bg-green-200 rounded-full" />
+              <div>
+                <p className="text-sm font-semibold text-gray-800">
+                  Welcome back, <span className="text-green-700">{user?.name?.split(' ')[0]}</span>
+                </p>
+                <p className="text-xs text-gray-400">
+                  {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}
+                </p>
+              </div>
             </div>
 
             {/* Right: Notifications */}
@@ -217,3 +228,4 @@ export default function DashboardLayout() {
     </div>
   );
 }
+
