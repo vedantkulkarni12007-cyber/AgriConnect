@@ -7,6 +7,8 @@ from fastapi.exceptions import RequestValidationError
 from app.core.config import settings
 from app.core.errors import validation_exception_handler, generic_exception_handler
 from app.modules.health.router import router as health_router
+from app.modules.auth.router import router as auth_router
+from app.modules.users.router import router as users_router
 
 def create_app() -> FastAPI:
     app = FastAPI(
@@ -39,6 +41,8 @@ def create_app() -> FastAPI:
     app.add_exception_handler(Exception, generic_exception_handler)
 
     app.include_router(health_router, prefix=settings.api_v1_prefix)
+    app.include_router(auth_router, prefix=settings.api_v1_prefix)
+    app.include_router(users_router, prefix=settings.api_v1_prefix)
 
     @app.get("/", include_in_schema=False)
     def root():
