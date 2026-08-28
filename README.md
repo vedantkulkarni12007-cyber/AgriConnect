@@ -2,7 +2,7 @@
 
 **"Better Prices. Better Buyers. Better Decisions."**
 
-KrishiLink is a full-stack agricultural market platform built for the Smart India Hackathon 2024. It helps farmers discover crop prices, find verified buyers, list produce, track sales, and maintain transparent transaction records.
+KrishiLink is a full-stack agricultural market platform built for the Smart India Hackathon 2026. It helps farmers discover crop prices, find verified buyers, list produce, track sales, and maintain transparent transaction records.
 
 ---
 
