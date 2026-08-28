@@ -14,6 +14,11 @@ from app.modules.markets.router import router as markets_router
 from app.modules.prices.router import router as prices_router
 from app.modules.lots.router import router as lots_router
 from app.modules.matching.router import router as matching_router
+from app.modules.offers.router import router as offers_router
+from app.modules.reservations.router import router as reservations_router
+from app.modules.transactions.router import router as transactions_router
+from app.modules.storage.router import router as storage_router
+from app.modules.disputes.router import router as disputes_router
 
 def create_app() -> FastAPI:
     app = FastAPI(
@@ -53,6 +58,11 @@ def create_app() -> FastAPI:
     app.include_router(prices_router, prefix=settings.api_v1_prefix)
     app.include_router(lots_router, prefix=settings.api_v1_prefix)
     app.include_router(matching_router, prefix=settings.api_v1_prefix)
+    app.include_router(offers_router, prefix=settings.api_v1_prefix)
+    app.include_router(reservations_router, prefix=settings.api_v1_prefix)
+    app.include_router(transactions_router, prefix=settings.api_v1_prefix)
+    app.include_router(storage_router, prefix=settings.api_v1_prefix)
+    app.include_router(disputes_router, prefix=settings.api_v1_prefix)
 
     @app.get("/", include_in_schema=False)
     def root():
