@@ -1,0 +1,31 @@
+{
+  "info": { "name": "KrishiLink", "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json" },
+  "variable": [
+    {"key": "base_url", "value": "http://localhost:8001"},
+    {"key": "access_token", "value": ""},
+    {"key": "refresh_token", "value": ""},
+    {"key": "lot_id", "value": ""},
+    {"key": "offer_id", "value": ""},
+    {"key": "transaction_id", "value": ""},
+    {"key": "public_id", "value": "KL-LOT-2026-000004"}
+  ],
+  "item": [
+    {"name": "health", "request": {"method": "GET", "url": "{{base_url}}/api/v1/health"}},
+    {"name": "register farmer", "request": {"method": "POST", "url": "{{base_url}}/api/v1/auth/register", "body": {"mode": "raw", "raw": "{\"full_name\":\"Test\",\"email\":\"test@demo.com\",\"password\":\"demo12345\",\"role\":\"farmer\"}"}}},
+    {"name": "login", "request": {"method": "POST", "url": "{{base_url}}/api/v1/auth/login", "body": {"mode": "raw", "raw": "{\"email\":\"ramesh@demo.com\",\"password\":\"demo123!\"}"}}},
+    {"name": "crops", "request": {"method": "GET", "url": "{{base_url}}/api/v1/crops"}},
+    {"name": "markets near", "request": {"method": "GET", "url": "{{base_url}}/api/v1/markets?near_lat=19.9975&near_lng=73.7898&radius_km=100"}},
+    {"name": "prices", "request": {"method": "GET", "url": "{{base_url}}/api/v1/prices?limit=5"}},
+    {"name": "prices history", "request": {"method": "GET", "url": "{{base_url}}/api/v1/prices/Wheat/history?days=7"}},
+    {"name": "provenance", "request": {"method": "GET", "url": "{{base_url}}/api/v1/prices/{{offer_id}}/provenance"}},
+    {"name": "create lot", "request": {"method": "POST", "url": "{{base_url}}/api/v1/lots", "header": [{"key": "Idempotency-Key", "value": "{{$guid}}"}, {"key": "Authorization", "value": "Bearer {{access_token}}"}], "body": {"mode": "raw", "raw": "{\"crop\":\"Wheat\",\"grade\":\"A\",\"quantity\":200,\"asking_price\":2100,\"location_text\":\"Nashik\"}"}}},
+    {"name": "matches refresh", "request": {"method": "POST", "url": "{{base_url}}/api/v1/matches/refresh", "header": [{"key": "Authorization", "value": "Bearer {{access_token}}"}], "body": {"mode": "raw", "raw": "{\"lot_id\":\"{{lot_id}}\"}"}}},
+    {"name": "create offer", "request": {"method": "POST", "url": "{{base_url}}/api/v1/offers", "header": [{"key": "Authorization", "value": "Bearer {{access_token}}"}], "body": {"mode": "raw", "raw": "{\"lot_id\":\"{{lot_id}}\",\"quantity\":100,\"price_per_unit\":2050}"}}},
+    {"name": "accept offer", "request": {"method": "POST", "url": "{{base_url}}/api/v1/offers/{{offer_id}}/accept", "header": [{"key": "Authorization", "value": "Bearer {{access_token}}"}, {"key": "Idempotency-Key", "value": "{{$guid}}"}]}},
+    {"name": "reservations", "request": {"method": "GET", "url": "{{base_url}}/api/v1/reservations", "header": [{"key": "Authorization", "value": "Bearer {{access_token}}"}]}},
+    {"name": "create transaction", "request": {"method": "POST", "url": "{{base_url}}/api/v1/transactions", "header": [{"key": "Authorization", "value": "Bearer {{access_token}}"}], "body": {"mode": "raw", "raw": "{\"reservation_id\":\"{{lot_id}}\"}"}}},
+    {"name": "public lot QR", "request": {"method": "GET", "url": "{{base_url}}/api/v1/lots/public/{{public_id}}"}},
+    {"name": "admin health", "request": {"method": "GET", "url": "{{base_url}}/api/v1/admin/system-health", "header": [{"key": "Authorization", "value": "Bearer {{access_token}}"}]}},
+    {"name": "metrics", "request": {"method": "GET", "url": "{{base_url}}/metrics"}}
+  ]
+}
