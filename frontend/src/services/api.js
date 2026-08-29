@@ -12,23 +12,32 @@ import {
   DEMO_TRANSACTIONS,
   DEMO_STORAGE,
   DEMO_GRIEVANCES,
-  DEMO_NOTIFICATIONS,
   DEMO_MARKERS,
 } from '../data/demoData';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
 const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true';
-const delay = (ms = 300) => new Promise(resolve => setTimeout(resolve, ms));
 
-// Helper for safe fetch with timeout
+// Retrieve the stored JWT access token for authenticated requests
+function getAuthHeaders() {
+  const token = localStorage.getItem('krishilink_access_token');
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+// Helper for safe fetch with timeout + auth header
 async function apiCall(endpoint, options = {}) {
   const url = endpoint.startsWith('http') ? endpoint : `${API_BASE}${endpoint}`;
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 4000);
-    
+    // Reduced from 4000ms to 1500ms — fail fast and fall back to demo data
+    const timeoutId = setTimeout(() => controller.abort(), 1500);
+
     const response = await fetch(url, {
-      headers: { 'Content-Type': 'application/json', ...options.headers },
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeaders(),    // attach Bearer token for protected routes
+        ...options.headers,
+      },
       signal: controller.signal,
       ...options,
     });
@@ -51,7 +60,7 @@ export async function getPrices(crop = null, market = null) {
     const params = new URLSearchParams();
     if (crop && crop !== 'All') params.append('crop', crop);
     if (market && market !== 'All') params.append('market', market);
-    
+
     // Try v1 first, then legacy /api/prices
     const res = (await apiCall(`/api/v1/prices?${params}`)) || (await apiCall(`/api/prices?${params}`));
     if (res && res.success && res.data) {
@@ -59,7 +68,6 @@ export async function getPrices(crop = null, market = null) {
     }
   }
 
-  await delay(150);
   let prices = [...DEMO_PRICES];
   if (crop && crop !== 'All') prices = prices.filter(p => p.crop === crop);
   if (market && market !== 'All') prices = prices.filter(p => p.market === market);
@@ -76,7 +84,6 @@ export async function getPriceHistory(crop, market = null, days = 15) {
     }
   }
 
-  await delay(150);
   const marketKey = market || Object.keys(DEMO_PRICE_HISTORY[crop] || {})[0] || 'Lasalgaon';
   const history = DEMO_PRICE_HISTORY[crop]?.[marketKey] ||
                   DEMO_PRICE_HISTORY[crop]?.[Object.keys(DEMO_PRICE_HISTORY[crop] || {})[0]] ||
@@ -94,10 +101,9 @@ export async function getTrend(crop, market = null) {
     }
   }
 
-  await delay(150);
   const priceData = DEMO_PRICES.find(p => p.crop === crop && (!market || p.market === market)) || DEMO_PRICES.find(p => p.crop === crop);
   if (!priceData) return { success: false, message: 'Crop not found' };
-  
+
   const movingAvg = Math.round(priceData.modal_price / (1 + (priceData.change_pct || 0) / 100));
   return {
     success: true,
@@ -123,21 +129,37 @@ export async function getLots(farmerId = null) {
   if (!DEMO_MODE) {
     const params = farmerId ? `?farmer_id=${farmerId}` : '';
     const res = (await apiCall(`/api/v1/lots${params}`)) || (await apiCall(`/api/lots${params}`));
-    if (res && res.success && res.data) return res;
+    if (res && res.success) {
+      // Backend returns paginated shape: { data: { items: [...], total, page } }
+      // Legacy Flask returns: { data: [...] }
+      const data = res.data?.items ?? res.data;
+      if (data) return { success: true, data };
+    }
   }
 
-  await delay(150);
   return { success: true, data: DEMO_LOTS };
 }
 
 export async function createLot(lotData) {
   if (!DEMO_MODE) {
-    const res = (await apiCall('/api/v1/lots', { method: 'POST', body: JSON.stringify(lotData) })) ||
-                (await apiCall('/api/lots', { method: 'POST', body: JSON.stringify(lotData) }));
+    // Map frontend field names to backend FastAPI schema
+    const payload = {
+      crop:            lotData.crop,
+      grade:           lotData.grade,
+      quantity:        Number(lotData.quantity),
+      unit:            lotData.unit || 'quintal',
+      location_text:   lotData.location_text || lotData.location || '',
+      asking_price:    Number(lotData.asking_price ?? lotData.expected_price ?? 0) || null,
+      harvest_date:    lotData.harvest_date || null,
+      available_from:  lotData.available_from || null,
+      available_until: lotData.available_until || null,
+      district:        lotData.district || null,
+    };
+    const res = (await apiCall('/api/v1/lots', { method: 'POST', body: JSON.stringify(payload) })) ||
+                (await apiCall('/api/lots',    { method: 'POST', body: JSON.stringify(lotData) }));
     if (res && res.success) return res;
   }
 
-  await delay(300);
   const newLot = {
     id: `lot-${Date.now()}`,
     ...lotData,
@@ -156,7 +178,6 @@ export async function getMatches(lotData) {
     if (res && res.success && res.data) return res;
   }
 
-  await delay(300);
   const buyers = DEMO_BUYERS.filter(b => b.crops.includes(lotData?.crop || 'Onion'));
   const pool = buyers.length > 0 ? buyers : DEMO_BUYERS;
   const scored = pool.map(buyer => {
@@ -182,7 +203,6 @@ export async function getOffers(params = {}) {
     if (res && res.success && res.data) return res;
   }
 
-  await delay(150);
   return { success: true, data: DEMO_OFFERS };
 }
 
@@ -193,7 +213,6 @@ export async function createOffer(offerData) {
     if (res && res.success) return res;
   }
 
-  await delay(200);
   const newOffer = { id: `demo-offer-${Date.now()}`, ...offerData, status: 'pending', created_at: new Date().toISOString() };
   return { success: true, data: newOffer, message: 'Offer submitted successfully' };
 }
@@ -205,7 +224,6 @@ export async function updateOffer(offerId, status) {
     if (res && res.success) return res;
   }
 
-  await delay(200);
   return { success: true, data: { id: offerId, status }, message: `Offer ${status}` };
 }
 
@@ -218,7 +236,6 @@ export async function getTransactions(params = {}) {
     if (res && res.success && res.data) return res;
   }
 
-  await delay(150);
   return { success: true, data: DEMO_TRANSACTIONS };
 }
 
@@ -228,7 +245,6 @@ export async function getTransaction(id) {
     if (res && res.success && res.data) return res;
   }
 
-  await delay(150);
   const txn = DEMO_TRANSACTIONS.find(t => t.id === id);
   return txn ? { success: true, data: txn } : { success: false, message: 'Transaction not found' };
 }
@@ -240,7 +256,6 @@ export async function getMapMarkers(type = 'all') {
     if (res && res.success && res.data?.length) return res;
   }
 
-  await delay(150);
   const markers = type === 'all' ? DEMO_MARKERS : DEMO_MARKERS.filter(m => m.type === type);
   return { success: true, data: markers };
 }
@@ -252,7 +267,6 @@ export async function getStorageFacilities() {
     if (res && res.success && res.data) return res;
   }
 
-  await delay(150);
   return { success: true, data: DEMO_STORAGE };
 }
 
@@ -264,7 +278,6 @@ export async function getGrievances(farmerId = null) {
     if (res && res.success && res.data) return res;
   }
 
-  await delay(150);
   return { success: true, data: DEMO_GRIEVANCES };
 }
 
@@ -275,7 +288,6 @@ export async function createGrievance(data) {
     if (res && res.success) return res;
   }
 
-  await delay(300);
   return {
     success: true,
     data: { id: `g-${Date.now()}`, ...data, status: 'open', created_at: new Date().toISOString() },

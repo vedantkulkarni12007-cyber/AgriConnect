@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     host: str = Field(default="0.0.0.0")
     port: int = Field(default=8000)
     frontend_url: str = Field(default="http://localhost:3000")
-    cors_origins: str = Field(default="http://localhost:3000,http://localhost:5173")
+    cors_origins: str = Field(default="http://localhost:3000,http://localhost:5173,http://localhost:5174,http://localhost:8000,http://localhost:8001")
 
     database_url: str = Field(default="postgresql+psycopg://krishilink:krishilink@localhost:5432/krishilink")
     database_url_sync: str | None = Field(default=None)

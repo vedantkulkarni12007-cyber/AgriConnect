@@ -31,9 +31,13 @@ export default function LoginPage() {
     const result = await login(email, password);
     setLoading(false);
     if (result.success) {
-      navigate('/farmer/dashboard');
+      // Redirect based on the role returned by the API
+      const role = result.user?.role;
+      if (role === 'buyer') navigate('/buyer/dashboard');
+      else if (role === 'fpo') navigate('/fpo/dashboard');
+      else navigate('/farmer/dashboard');
     } else {
-      setError(result.message);
+      setError(result.message || 'Login failed. Please check your credentials.');
     }
   };
 

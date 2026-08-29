@@ -34,11 +34,13 @@ export default function RegisterPage() {
     const result = await register(formData);
     setLoading(false);
     if (result.success) {
-      if (formData.role === 'farmer') navigate('/farmer/dashboard');
-      else if (formData.role === 'buyer') navigate('/buyer/dashboard');
-      else navigate('/fpo/dashboard');
+      // Redirect based on the role confirmed by the API
+      const role = result.user?.role || formData.role;
+      if (role === 'buyer') navigate('/buyer/dashboard');
+      else if (role === 'fpo') navigate('/fpo/dashboard');
+      else navigate('/farmer/dashboard');
     } else {
-      setError(result.message);
+      setError(result.message || 'Registration failed. Please try again.');
     }
   };
 
@@ -129,7 +131,8 @@ export default function RegisterPage() {
         </div>
 
         <p className="text-center text-xs text-gray-400 mt-4">
-          Demo mode: Registration creates a local account. Connect Supabase for real auth.
+          Your account will be saved to the database when the backend is running.
+          Demo login is available if offline.
         </p>
       </div>
     </div>
