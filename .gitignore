@@ -47,3 +47,7 @@ yarn-debug.log*
 # ---- Temporary files ----
 *.tmp
 *.temp
+.coverage
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
