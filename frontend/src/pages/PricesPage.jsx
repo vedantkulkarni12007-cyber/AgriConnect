@@ -53,7 +53,7 @@ export default function PricesPage() {
     setError(null);
     try {
       const res = await getPrices();
-      if (res.success) {
+      if (res && res.success && res.data) {
         setPrices(res.data);
         setFiltered(res.data);
       } else {
@@ -61,15 +61,23 @@ export default function PricesPage() {
       }
     } catch {
       setError('Price data is temporarily unavailable. Please try again.');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }
 
   async function loadHistory(crop) {
     setHistLoading(true);
-    const res = await getPriceHistory(crop, null, 15);
-    if (res.success) setPriceHistory(res.data);
-    setHistLoading(false);
+    try {
+      const res = await getPriceHistory(crop, null, 15);
+      if (res && res.success && res.data) {
+        setPriceHistory(res.data);
+      }
+    } catch {
+      // safe fallback
+    } finally {
+      setHistLoading(false);
+    }
   }
 
   // Best price for the selected crop

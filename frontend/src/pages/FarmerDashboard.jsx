@@ -158,15 +158,20 @@ export default function FarmerDashboard() {
   useEffect(() => {
     async function loadData() {
       setLoading(true);
-      const [priceRes, trendRes, histRes] = await Promise.all([
-        getPrices(),
-        getTrend(selectedCrop, 'Lasalgaon'),
-        getPriceHistory(selectedCrop, 'Lasalgaon', 14),
-      ]);
-      if (priceRes.success) setPrices(priceRes.data);
-      if (trendRes.success) setTrendData(trendRes.data);
-      if (histRes.success) setPriceHistory(histRes.data);
-      setLoading(false);
+      try {
+        const [priceRes, trendRes, histRes] = await Promise.all([
+          getPrices(),
+          getTrend(selectedCrop, 'Lasalgaon'),
+          getPriceHistory(selectedCrop, 'Lasalgaon', 14),
+        ]);
+        if (priceRes && priceRes.success && priceRes.data) setPrices(priceRes.data);
+        if (trendRes && trendRes.success && trendRes.data) setTrendData(trendRes.data);
+        if (histRes && histRes.success && histRes.data) setPriceHistory(histRes.data);
+      } catch (err) {
+        console.warn('Dashboard loadData fallback:', err);
+      } finally {
+        setLoading(false);
+      }
     }
     loadData();
   }, [selectedCrop]);
