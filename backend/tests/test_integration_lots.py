@@ -1,21 +1,11 @@
+import pytest
 from fastapi.testclient import TestClient
 
-from app.main import app
-
-client = TestClient(app)
-
-def _get_auth_headers(client):
-    r = client.post("/api/v1/auth/login", json={"email": "ramesh@demo.com", "password": "demo123!"})
-    if r.status_code != 200:
-        pytest.skip("Cannot authenticate test user")
-    return {"Authorization": f"Bearer {r.json()['data']['access_token']}"}
-
-def test_create_lot(client):
-    h = _get_auth_headers(client)
+def test_create_lot(client, auth_headers):
     r = client.post("/api/v1/lots", json={
         "crop": "Wheat", "grade": "A", "quantity": 100.0,
         "location_text": "Nashik Market", "district": "Nashik"
-    }, headers=h)
+    }, headers=auth_headers)
     assert r.status_code == 201
     data = r.json()["data"]
     assert data["public_id"].startswith("KL-LOT-")
@@ -56,9 +46,8 @@ def test_create_lot_unauthorized(client):
     })
     assert r.status_code == 401
 
-def test_create_lot_duplicate_idempotency(client):
-    h = _get_auth_headers(client)
-    headers = {**h, "Idempotency-Key": "dup-test-key"}
+def test_create_lot_duplicate_idempotency(client, auth_headers):
+    headers = {**auth_headers, "Idempotency-Key": "dup-test-key-001"}
     r = client.post("/api/v1/lots", json={
         "crop": "Wheat", "grade": "A", "quantity": 100.0,
         "location_text": "Nashik", "district": "Nashik"

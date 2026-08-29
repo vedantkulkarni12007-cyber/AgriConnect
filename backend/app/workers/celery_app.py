@@ -38,9 +38,10 @@ def ping():
 
 @celery_app.task(name="reservations.expire")
 def expire_reservations():
+    from datetime import datetime, timezone
+
     from app.core.database import SessionLocal
     from app.models import Reservation
-    from datetime import datetime, timezone
 
     db = SessionLocal()
     try:
@@ -56,10 +57,12 @@ def expire_reservations():
 
 @celery_app.task(name="outbox.process_pending", bind=True, max_retries=3, default_retry_delay=10)
 def process_outbox(self):
+    from urllib.parse import urlparse
+
+    import redis
+
     from app.core.database import SessionLocal
     from app.models import OutboxEvent
-    import redis
-    from urllib.parse import urlparse
 
     db = SessionLocal()
     try:
@@ -93,7 +96,7 @@ def process_outbox(self):
                 })
                 event.status = "COMPLETED"
                 processed += 1
-            except Exception as e:
+            except Exception:
                 event.retry_count += 1
                 if event.retry_count >= 3:
                     event.status = "FAILED"

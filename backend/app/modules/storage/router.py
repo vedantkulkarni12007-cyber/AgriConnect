@@ -1,8 +1,8 @@
-from fastapi import APIRouter, Depends, Query, Request, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.core.s3 import get_s3_client, generate_presigned_url
+from app.core.s3 import generate_presigned_url, get_s3_client
 from app.models import StorageFacility
 
 router = APIRouter(prefix="/storage", tags=["storage"])
@@ -32,7 +32,7 @@ def list_buckets(request: Request):
     client = get_s3_client()
     if not client:
         return {"success": True, "data": [], "message": "S3 not configured"}
-    
+
     try:
         resp = client.list_buckets()
         buckets = [{"name": b["Name"], "created": b["CreationDate"].isoformat()} for b in resp.get("Buckets", [])]
@@ -46,6 +46,6 @@ def create_presigned_url(key: str, expiration: int = 3600, request: Request = No
     client = get_s3_client()
     if not client:
         raise HTTPException(status_code=503, detail="S3 not configured")
-    
+
     url = generate_presigned_url(key, expiration)
     return {"success": True, "data": {"url": url, "expires_in": expiration}, "message": "Presigned URL generated", "request_id": getattr(request.state, "request_id", None) if request else None}

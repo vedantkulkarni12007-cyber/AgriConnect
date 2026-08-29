@@ -1,19 +1,28 @@
 import uuid
-from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File
-from pydantic import BaseModel
+from datetime import datetime, timezone
+
+from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.deps import get_current_user
-from app.core.s3 import get_s3_client, upload_file, generate_presigned_url
-from app.models import Dispute, Evidence, User
+from app.core.s3 import generate_presigned_url, get_s3_client, upload_file
+from app.models import AuditLog, Dispute, Evidence, User
+from app.modules.notifications.service import NotificationService
 
 router = APIRouter(prefix="/disputes", tags=["disputes"])
 
 class CreateDisputeRequest(BaseModel):
     transaction_id: str | None = None
-    reason: str
-    description: str
+    reason: str = Field(min_length=3, max_length=200)
+    description: str = Field(min_length=5)
+    category: str | None = "General Inquiry"
+    priority: str | None = "MEDIUM"
+
+class UpdateDisputeStatusRequest(BaseModel):
+    status: str
+    resolution: str | None = None
 
 class EvidenceRequest(BaseModel):
     s3_key: str
@@ -22,18 +31,60 @@ class EvidenceRequest(BaseModel):
 
 @router.post("", response_model=dict, status_code=201)
 def create_dispute(data: CreateDisputeRequest, request: Request, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    txn_id = None
+    if data.transaction_id:
+        try:
+            txn_id = uuid.UUID(data.transaction_id)
+        except (ValueError, TypeError):
+            pass
+
     d = Dispute(
         id=uuid.uuid4(),
-        transaction_id=uuid.UUID(data.transaction_id) if data.transaction_id else None,
+        transaction_id=txn_id,
         raised_by=user.id,
-        reason=data.reason,
+        reason=f"[{data.category or 'General'}] {data.reason}",
         description=data.description,
         status="OPEN"
     )
     db.add(d)
+
+    rid = getattr(request.state, "request_id", str(uuid.uuid4()))
+    db.add(
+        AuditLog(
+            actor_id=str(user.id),
+            action="dispute.create",
+            entity="disputes",
+            entity_id=str(d.id),
+            after={"reason": d.reason, "status": d.status},
+            request_id=rid,
+        )
+    )
+
+    # Notify admins/support
+    NotificationService.create_notification(
+        db=db,
+        user_id=user.id,
+        type_="support_ticket",
+        title="Support Ticket Created",
+        message=f"Your ticket '{data.reason}' (ID: #{str(d.id)[:8]}) has been received. Our team will review it.",
+        related_id=d.id,
+        outbox=True
+    )
+
     db.commit()
     db.refresh(d)
-    return {"success": True, "data": {"id": str(d.id), "status": d.status}, "message": "Dispute created", "request_id": getattr(request.state, "request_id", None)}
+    return {
+        "success": True,
+        "data": {
+            "id": str(d.id),
+            "reason": d.reason,
+            "description": d.description,
+            "status": d.status,
+            "created_at": d.created_at.isoformat() if d.created_at else None,
+        },
+        "message": "Support ticket created successfully",
+        "request_id": rid,
+    }
 
 @router.get("", response_model=dict)
 def list_disputes(request: Request, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
@@ -41,14 +92,138 @@ def list_disputes(request: Request, db: Session = Depends(get_db), user: User = 
     if user.role.lower() not in ("admin", "operator"):
         q = q.filter(Dispute.raised_by == user.id)
     items = q.order_by(Dispute.created_at.desc()).all()
-    data = [{"id": str(d.id), "reason": d.reason, "status": d.status, "description": d.description} for d in items]
-    return {"success": True, "data": data, "message": f"{len(data)} disputes", "request_id": getattr(request.state, "request_id", None)}
+    data = [
+        {
+            "id": str(d.id),
+            "ticket_number": f"KL-TKT-{str(d.id)[:8].upper()}",
+            "reason": d.reason,
+            "description": d.description,
+            "status": d.status,
+            "resolution": d.resolution,
+            "transaction_id": str(d.transaction_id) if d.transaction_id else None,
+            "raised_by": str(d.raised_by),
+            "created_at": d.created_at.isoformat() if d.created_at else None,
+            "updated_at": d.updated_at.isoformat() if d.updated_at else None,
+        }
+        for d in items
+    ]
+    return {
+        "success": True,
+        "data": data,
+        "message": f"{len(data)} support tickets",
+        "request_id": getattr(request.state, "request_id", None),
+    }
+
+@router.get("/{dispute_id}", response_model=dict)
+def get_dispute(dispute_id: str, request: Request, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    d = None
+    try:
+        u = uuid.UUID(dispute_id)
+        d = db.query(Dispute).filter(Dispute.id == u).first()
+    except (ValueError, TypeError):
+        pass
+
+    if not d:
+        raise HTTPException(status_code=404, detail="Dispute or support ticket not found")
+
+    # Authorize: ticket creator or admin
+    if user.role.lower() not in ("admin", "operator") and d.raised_by != user.id:
+        raise HTTPException(status_code=403, detail="Forbidden: You cannot access another user's support ticket")
+
+    ev_items = db.query(Evidence).filter(Evidence.dispute_id == d.id).all()
+    evidence_list = [
+        {
+            "id": str(ev.id),
+            "filename": ev.s3_key.split("/")[-1],
+            "s3_key": ev.s3_key,
+            "mime_type": ev.mime_type,
+            "url": generate_presigned_url(ev.s3_key) if get_s3_client() else None,
+        }
+        for ev in ev_items
+    ]
+
+    return {
+        "success": True,
+        "data": {
+            "id": str(d.id),
+            "ticket_number": f"KL-TKT-{str(d.id)[:8].upper()}",
+            "reason": d.reason,
+            "description": d.description,
+            "status": d.status,
+            "resolution": d.resolution,
+            "transaction_id": str(d.transaction_id) if d.transaction_id else None,
+            "evidence": evidence_list,
+            "created_at": d.created_at.isoformat() if d.created_at else None,
+            "updated_at": d.updated_at.isoformat() if d.updated_at else None,
+        },
+        "message": "Ticket details",
+        "request_id": getattr(request.state, "request_id", None),
+    }
+
+@router.post("/{dispute_id}/status", response_model=dict)
+def update_dispute_status(dispute_id: str, data: UpdateDisputeStatusRequest, request: Request, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    # Restrict status changes to admin or operator
+    if user.role.lower() not in ("admin", "operator"):
+        raise HTTPException(status_code=403, detail="Forbidden: Only administrators can update dispute status")
+
+    try:
+        u = uuid.UUID(dispute_id)
+        d = db.query(Dispute).filter(Dispute.id == u).first()
+    except (ValueError, TypeError):
+        d = None
+
+    if not d:
+        raise HTTPException(status_code=404, detail="Dispute not found")
+
+    new_status = data.status.upper()
+    d.status = new_status
+    if data.resolution:
+        d.resolution = data.resolution
+    d.operator_id = user.id
+    d.updated_at = datetime.now(timezone.utc)
+
+    rid = getattr(request.state, "request_id", str(uuid.uuid4()))
+    db.add(
+        AuditLog(
+            actor_id=str(user.id),
+            action="dispute.update_status",
+            entity="disputes",
+            entity_id=str(d.id),
+            after={"status": d.status, "resolution": d.resolution},
+            request_id=rid,
+        )
+    )
+
+    # Send persistent notification to ticket creator
+    NotificationService.create_notification(
+        db=db,
+        user_id=d.raised_by,
+        type_="support_update",
+        title="Support Ticket Updated",
+        message=f"Your ticket '{d.reason}' is now {new_status}. {data.resolution or ''}".strip(),
+        related_id=d.id,
+        outbox=True
+    )
+
+    db.commit()
+    return {
+        "success": True,
+        "data": {"id": str(d.id), "status": d.status, "resolution": d.resolution},
+        "message": f"Ticket status updated to {d.status}",
+        "request_id": rid,
+    }
 
 @router.post("/{dispute_id}/evidence", response_model=dict)
 def add_evidence(dispute_id: str, data: EvidenceRequest, request: Request, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
-    d = db.get(Dispute, dispute_id)
+    try:
+        u = uuid.UUID(dispute_id)
+        d = db.query(Dispute).filter(Dispute.id == u).first()
+    except (ValueError, TypeError):
+        d = None
+
     if not d:
         raise HTTPException(status_code=404, detail="Dispute not found")
+
     ev = Evidence(id=uuid.uuid4(), dispute_id=d.id, uploader_id=user.id, s3_key=data.s3_key, file_hash=data.file_hash, mime_type=data.mime_type)
     db.add(ev)
     db.commit()
@@ -56,14 +231,19 @@ def add_evidence(dispute_id: str, data: EvidenceRequest, request: Request, db: S
 
 @router.post("/{dispute_id}/evidence/upload", response_model=dict)
 async def upload_evidence(dispute_id: str, file: UploadFile = File(...), request: Request = None, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
-    d = db.get(Dispute, dispute_id)
+    try:
+        u = uuid.UUID(dispute_id)
+        d = db.query(Dispute).filter(Dispute.id == u).first()
+    except (ValueError, TypeError):
+        d = None
+
     if not d:
         raise HTTPException(status_code=404, detail="Dispute not found")
-    
+
     client = get_s3_client()
     if not client:
-        raise HTTPException(status_code=503, detail="S3 storage not configured")
-    
+        raise HTTPException(status_code=503, detail="Storage service unavailable")
+
     key = f"disputes/{dispute_id}/{uuid.uuid4().hex[:8]}_{file.filename}"
     try:
         content = await file.read()
@@ -71,26 +251,13 @@ async def upload_evidence(dispute_id: str, file: UploadFile = File(...), request
         upload_file(BytesIO(content), key, file.content_type)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Upload failed: {e}")
-    
+
     import hashlib
     file_hash = hashlib.sha256(content).hexdigest()
-    
+
     ev = Evidence(id=uuid.uuid4(), dispute_id=d.id, uploader_id=user.id, s3_key=key, file_hash=file_hash, mime_type=file.content_type)
     db.add(ev)
     db.commit()
-    
+
     url = generate_presigned_url(key)
     return {"success": True, "data": {"id": str(ev.id), "s3_key": key, "url": url}, "message": "Evidence uploaded", "request_id": getattr(request.state, "request_id", None)}
-
-@router.get("/{dispute_id}/evidence/{evidence_id}/download", response_model=dict)
-def download_evidence(dispute_id: str, evidence_id: str, request: Request, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
-    ev = db.get(Evidence, evidence_id)
-    if not ev or str(ev.dispute_id) != dispute_id:
-        raise HTTPException(status_code=404, detail="Evidence not found")
-    
-    client = get_s3_client()
-    if not client:
-        raise HTTPException(status_code=503, detail="S3 storage not configured")
-    
-    url = generate_presigned_url(ev.s3_key)
-    return {"success": True, "data": {"url": url, "filename": ev.s3_key.split("/")[-1]}, "message": "Download URL generated", "request_id": getattr(request.state, "request_id", None)}

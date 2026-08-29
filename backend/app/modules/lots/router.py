@@ -77,12 +77,37 @@ def list_lots(request: Request, db: Session = Depends(get_db), status: str | Non
 
 @router.get("/{lot_id}", response_model=dict)
 def get_lot(lot_id: str, request: Request, db: Session = Depends(get_db)):
-    lot = db.get(Lot, lot_id)
+    lot = None
+    try:
+        u = uuid.UUID(lot_id)
+        lot = db.query(Lot).filter(Lot.id == u).first()
+    except (ValueError, AttributeError):
+        pass
+
     if not lot:
         lot = db.query(Lot).filter(Lot.public_id == lot_id).first()
+
     if not lot:
         raise HTTPException(status_code=404, detail="Lot not found")
-    return {"success": True, "data": {"id": str(lot.id), "public_id": lot.public_id, "crop": lot.crop_name, "quantity": float(lot.quantity), "grade": lot.grade, "status": lot.status, "location": lot.location_text, "district": lot.district, "asking_price": float(lot.asking_price) if lot.asking_price else None, "available_from": lot.available_from.isoformat() if lot.available_from else None, "available_until": lot.available_until.isoformat() if lot.available_until else None}, "message": "OK", "request_id": getattr(request.state, "request_id", None)}
+
+    return {
+        "success": True,
+        "data": {
+            "id": str(lot.id),
+            "public_id": lot.public_id,
+            "crop": lot.crop_name,
+            "quantity": float(lot.quantity),
+            "grade": lot.grade,
+            "status": lot.status,
+            "location": lot.location_text,
+            "district": lot.district,
+            "asking_price": float(lot.asking_price) if lot.asking_price else None,
+            "available_from": lot.available_from.isoformat() if lot.available_from else None,
+            "available_until": lot.available_until.isoformat() if lot.available_until else None,
+        },
+        "message": "OK",
+        "request_id": getattr(request.state, "request_id", None),
+    }
 
 @router.get("/public/{public_id}", response_model=dict)
 def public_lot(public_id: str, request: Request, db: Session = Depends(get_db)):

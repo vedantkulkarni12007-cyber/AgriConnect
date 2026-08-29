@@ -16,7 +16,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         loc = err.get("loc", [])
         field = loc[-1] if loc else "field"
         msg = err.get("msg", "Invalid value")
-        
+
         # User-friendly translation of pydantic errors
         if "value is not a valid email address" in msg or "email" in str(field).lower():
             err_msgs.append("Please enter a valid email address including domain (e.g. name@gmail.com)")

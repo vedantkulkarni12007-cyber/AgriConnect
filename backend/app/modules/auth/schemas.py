@@ -28,22 +28,32 @@ class RegisterRequest(BaseModel):
             raise ValueError("password must be at least 6 characters")
         return v
 
-
 class LoginRequest(BaseModel):
     email: str
     password: str
 
-
 class RefreshRequest(BaseModel):
     refresh_token: str
 
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str = Field(min_length=6, max_length=72)
+
+    @field_validator("new_password")
+    @classmethod
+    def check_password(cls, v: str) -> str:
+        if len(v) < 6:
+            raise ValueError("new password must be at least 6 characters")
+        return v
 
 class TokenResponse(BaseModel):
     access_token: str
     refresh_token: str
     token_type: str = "bearer"
     expires_in: int
-
 
 class UserResponse(BaseModel):
     model_config = {"from_attributes": True}

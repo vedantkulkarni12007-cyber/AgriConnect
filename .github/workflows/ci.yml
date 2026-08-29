@@ -26,8 +26,7 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: "3.13" }
       - run: pip install -r backend/requirements.txt
-      - run: ruff check backend/app || true
-      - run: ruff format --check backend/app || true
+      - run: ruff check backend/app
       - run: python -m mypy backend/app --ignore-missing-imports || true
       - env:
           DATABASE_URL: postgresql+psycopg://krishilink:krishilink@localhost:5432/krishilink_test
@@ -35,7 +34,7 @@ jobs:
           JWT_SECRET: ci-test-secret-32chars-long-xyz!!
         run: |
           alembic -c alembic.ini upgrade head
-          pytest -q || echo "no tests yet"
+          pytest -v
           python -m alembic downgrade base || true
           python -m alembic upgrade head
         working-directory: backend

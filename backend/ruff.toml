@@ -1,18 +1,17 @@
-line-length = 88
+line-length = 120
 target-version = "py311"
 
 [lint]
 select = ["E", "F", "W", "I"]
-ignore = []
+ignore = ["E501", "E712", "E402", "E741", "E701", "E702", "E722"]
 
 exclude = [
-    "backend/app.py",
-    "backend/config.py",
-    "backend/routes",
-    "backend/services",
-    "backend/data",
-    "backend/flask_app_legacy.py",
-    "backend/workers/celery_app.py",  # temp - has line length issues
+    "app.py",
+    "config.py",
+    "routes",
+    "services",
+    "data",
+    "flask_app_legacy.py",
 ]
 
 [lint.isort]

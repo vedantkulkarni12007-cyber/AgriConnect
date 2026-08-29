@@ -1,17 +1,18 @@
 import logging
 import os
 import sqlite3
-from sqlalchemy import create_engine, text, event
-from sqlalchemy.engine import Engine
-from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
-from sqlalchemy.ext.compiler import compiles
-from sqlalchemy.dialects.postgresql import JSONB, UUID
-from sqlalchemy.types import ARRAY
+
+from sqlalchemy import create_engine, event, text
 from sqlalchemy.dialects.postgresql import ARRAY as PG_ARRAY
+from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlalchemy.engine import Engine
+from sqlalchemy.ext.compiler import compiles
+from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
+from sqlalchemy.types import ARRAY
 
 try:
-    from geoalchemy2 import Geography, Geometry
     import geoalchemy2.admin.dialects.sqlite as sqlite_admin
+    from geoalchemy2 import Geography, Geometry
     sqlite_admin.after_create = lambda *args, **kwargs: None
     sqlite_admin.before_create = lambda *args, **kwargs: None
 except ImportError:
@@ -24,6 +25,28 @@ def compile_jsonb_sqlite(type_, compiler, **kw):
 @compiles(UUID, 'sqlite')
 def compile_uuid_sqlite(type_, compiler, **kw):
     return 'VARCHAR(36)'
+
+import uuid as _py_uuid
+
+_orig_uuid_bind_processor = UUID.bind_processor
+def _safe_uuid_bind_processor(self, dialect):
+    proc = _orig_uuid_bind_processor(self, dialect)
+    if proc:
+        def _safe_proc(value):
+            if value is None:
+                return None
+            if isinstance(value, str):
+                try:
+                    return _py_uuid.UUID(value).hex
+                except ValueError:
+                    return value.replace('-', '')
+            if hasattr(value, 'hex'):
+                return value.hex
+            return str(value)
+        return _safe_proc
+    return proc
+
+UUID.bind_processor = _safe_uuid_bind_processor
 
 @compiles(ARRAY, 'sqlite')
 def compile_array_sqlite(type_, compiler, **kw):
@@ -67,7 +90,7 @@ class Base(DeclarativeBase):
 
 def create_db_engine():
     db_url = settings.database_url_effective
-    
+
     # If SQLite explicitly configured or dev fallback
     if "sqlite" in db_url:
         eng = create_engine(
@@ -78,7 +101,7 @@ def create_db_engine():
         import app.models  # noqa: F401
         Base.metadata.create_all(eng)
         return eng
-    
+
     # Try PostgreSQL, fallback to local SQLite if PostgreSQL is not running
     try:
         eng = create_engine(

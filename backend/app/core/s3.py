@@ -1,5 +1,6 @@
 import boto3
 from botocore.exceptions import ClientError
+
 from app.core.config import settings
 
 _s3_client = None
@@ -22,11 +23,11 @@ def upload_file(file_obj, key: str, content_type: str | None = None) -> str:
     client = get_s3_client()
     if not client:
         raise RuntimeError("S3 not configured")
-    
+
     extra_args = {}
     if content_type:
         extra_args["ContentType"] = content_type
-    
+
     client.upload_fileobj(file_obj, settings.s3_bucket, key, ExtraArgs=extra_args)
     return key
 
@@ -35,7 +36,7 @@ def generate_presigned_url(key: str, expiration: int = 3600) -> str:
     client = get_s3_client()
     if not client:
         raise RuntimeError("S3 not configured")
-    
+
     return client.generate_presigned_url(
         "get_object",
         Params={"Bucket": settings.s3_bucket, "Key": key},
@@ -47,7 +48,7 @@ def delete_file(key: str) -> bool:
     client = get_s3_client()
     if not client:
         raise RuntimeError("S3 not configured")
-    
+
     try:
         client.delete_object(Bucket=settings.s3_bucket, Key=key)
         return True
@@ -59,7 +60,7 @@ def file_exists(key: str) -> bool:
     client = get_s3_client()
     if not client:
         return False
-    
+
     try:
         client.head_object(Bucket=settings.s3_bucket, Key=key)
         return True
