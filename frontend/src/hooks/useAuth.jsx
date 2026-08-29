@@ -56,7 +56,18 @@ export function AuthProvider({ children }) {
       const json = await res.json();
 
       if (!res.ok) {
-        const msg = json?.detail || json?.message || 'Invalid credentials';
+        let msg = json?.message;
+        if (!msg || msg === 'Validation failed') {
+          if (typeof json?.detail === 'string') {
+            msg = json.detail;
+          } else if (Array.isArray(json?.details) && json.details.length > 0) {
+            msg = json.details.map(d => d.msg || `${d.loc?.slice(-1)[0] || 'Field'}: invalid`).join('. ');
+          } else if (Array.isArray(json?.detail) && json.detail.length > 0) {
+            msg = json.detail.map(d => d.msg || 'Invalid field').join('. ');
+          } else {
+            msg = 'Invalid email/phone or password.';
+          }
+        }
         return { success: false, message: msg };
       }
 
@@ -111,8 +122,18 @@ export function AuthProvider({ children }) {
       const json = await res.json();
 
       if (!res.ok) {
-        // 409 = email/phone already registered; 422 = validation error
-        const msg = json?.detail || json?.message || 'Registration failed. Please check your details.';
+        let msg = json?.message;
+        if (!msg || msg === 'Validation failed') {
+          if (typeof json?.detail === 'string') {
+            msg = json.detail;
+          } else if (Array.isArray(json?.details) && json.details.length > 0) {
+            msg = json.details.map(d => d.msg || `${d.loc?.slice(-1)[0] || 'Field'}: invalid`).join('. ');
+          } else if (Array.isArray(json?.detail) && json.detail.length > 0) {
+            msg = json.detail.map(d => d.msg || 'Invalid field').join('. ');
+          } else {
+            msg = 'Registration failed. Please check your details.';
+          }
+        }
         return { success: false, message: msg };
       }
 
