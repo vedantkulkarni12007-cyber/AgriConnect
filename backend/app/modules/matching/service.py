@@ -1,7 +1,16 @@
-import uuid, math
+import math
+import uuid
+
 from sqlalchemy.orm import Session
-from sqlalchemy import text
-from app.models import Lot, User, BuyerProfile, BuyerRequirement, Match, MatchRuleSet, Crop
+
+from app.models import (
+    BuyerProfile,
+    BuyerRequirement,
+    Lot,
+    Match,
+    MatchRuleSet,
+    User,
+)
 
 DEFAULT_WEIGHTS = {"crop":30,"grade":15,"quantity":15,"distance":15,"price":10,"time":5,"verification":10}
 

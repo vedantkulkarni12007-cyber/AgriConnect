@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends, Request
-from sqlalchemy.orm import Session
 import time
 
-from app.core.config import settings
-from app.core.database import get_db, check_db
 import redis as redis_lib
+from fastapi import APIRouter, Depends, Request
+from sqlalchemy.orm import Session
+
+from app.core.config import settings
+from app.core.database import check_db, get_db
 
 router = APIRouter(tags=["health"])
 

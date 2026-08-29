@@ -1,11 +1,11 @@
-from fastapi import APIRouter, Depends, Request, Query, HTTPException
-from sqlalchemy.orm import Session
-from sqlalchemy import func
-from app.core.database import get_db, check_db
-from app.core.deps import require_role
-from app.models import User, AuditLog, Lot, Transaction, Dispute
 import redis as redis_lib
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from sqlalchemy.orm import Session
+
 from app.core.config import settings
+from app.core.database import check_db, get_db
+from app.core.deps import require_role
+from app.models import AuditLog, Dispute, Lot, Transaction, User
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 

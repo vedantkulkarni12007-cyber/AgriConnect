@@ -4,21 +4,29 @@ Idempotent: safe to run multiple times (ON CONFLICT / upsert).
 Uses demo_data.py as source, writes to PostgreSQL+PostGIS via SQLAlchemy.
 Public IDs: KL-LOT-2026-0000X
 """
-import uuid
 import hashlib
-from datetime import date, datetime, timezone, timedelta
+import uuid
+from datetime import date, datetime, timedelta, timezone
 
-from sqlalchemy.orm import Session
-from sqlalchemy.dialects.postgresql import insert as pg_insert
 from geoalchemy2.elements import WKTElement
+from sqlalchemy.orm import Session
 
-from app.core.database import SessionLocal, engine
-from app.models import (
-    Crop, Market, PriceSource, IngestionRun, PriceObservation,
-    User, FarmerProfile, BuyerProfile, FPOProfile,
-    Lot, MatchRuleSet, StorageFacility,
-)
+from app.core.database import SessionLocal
 from app.core.security import hash_password
+from app.models import (
+    BuyerProfile,
+    Crop,
+    FarmerProfile,
+    FPOProfile,
+    IngestionRun,
+    Lot,
+    Market,
+    MatchRuleSet,
+    PriceObservation,
+    PriceSource,
+    StorageFacility,
+    User,
+)
 
 MARKET_COORDS = {
     "Nashik": (19.9975, 73.7898),
@@ -179,7 +187,7 @@ def run():
 
         db.commit()
         print("Seed WHEAT-NASHIK-DEMO-001 applied")
-    except Exception as e:
+    except Exception:
         db.rollback()
         raise
     finally:

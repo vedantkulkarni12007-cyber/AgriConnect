@@ -1,6 +1,8 @@
+import uuid
+
 from fastapi import Request
 from fastapi.responses import JSONResponse
-import uuid
+
 
 def envelope(success: bool, data, message: str, request: Request | None = None, code: str | None = None, details=None, status_code: int = 200):
     rid = getattr(request.state, "request_id", None) if request else None

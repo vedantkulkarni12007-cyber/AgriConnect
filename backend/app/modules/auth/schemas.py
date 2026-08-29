@@ -1,6 +1,7 @@
 import uuid
+
 from pydantic import BaseModel, EmailStr, Field, field_validator
-import re
+
 
 class RegisterRequest(BaseModel):
     full_name: str = Field(min_length=2, max_length=100)

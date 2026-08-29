@@ -1,10 +1,12 @@
 import uuid
-from fastapi import APIRouter, Depends, Request, HTTPException
-from sqlalchemy.orm import Session
+
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
+
 from app.core.database import get_db
 from app.core.deps import get_current_user
-from app.models import Dispute, Transaction, Evidence, User
+from app.models import Dispute, Evidence, User
 
 router = APIRouter(prefix="/disputes", tags=["disputes"])
 

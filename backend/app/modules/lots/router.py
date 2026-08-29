@@ -1,12 +1,14 @@
-import uuid, hashlib
+import uuid
 from datetime import date, timedelta
-from fastapi import APIRouter, Depends, Request, HTTPException, Query
-from sqlalchemy.orm import Session
+
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, Field
+from sqlalchemy.orm import Session
+
 from app.core.database import get_db
-from app.core.deps import get_current_user, require_role
+from app.core.deps import require_role
 from app.core.idempotency import check_idempotency, save_idempotency
-from app.models import Lot, Crop, User
+from app.models import Crop, Lot, User
 
 router = APIRouter(prefix="/lots", tags=["lots"])
 
@@ -25,8 +27,7 @@ class CreateLotRequest(BaseModel):
     market_reference_price: float | None = None
 
 def gen_public_id(db: Session):
-    count = db.query(Lot).count() + 1
-    return f"KL-LOT-2026-{count:06d}"
+    return f"KL-LOT-{uuid.uuid4().hex[:10].upper()}"
 
 @router.post("", response_model=dict, status_code=201)
 def create_lot(data: CreateLotRequest, request: Request, db: Session = Depends(get_db), user: User = Depends(require_role("farmer","fpo","admin"))):

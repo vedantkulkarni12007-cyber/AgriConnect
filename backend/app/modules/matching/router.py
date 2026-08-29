@@ -1,10 +1,11 @@
-from fastapi import APIRouter, Depends, Request, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session
+
 from app.core.database import get_db
 from app.core.deps import get_current_user
-from app.models import Match, Lot
-from app.modules.matching.service import refresh_matches, find_candidates
+from app.models import Lot, Match
 from app.modules.matching.schemas import MatchRequest
+from app.modules.matching.service import find_candidates, refresh_matches
 
 router = APIRouter(prefix="/matches", tags=["matching"])
 

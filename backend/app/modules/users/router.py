@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, Request
+
 from app.core.deps import get_current_user, require_role
 from app.models import User
 from app.modules.auth.schemas import UserResponse

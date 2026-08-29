@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Depends, Request, Query
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy import text
+from sqlalchemy.orm import Session
+
 from app.core.database import get_db
 from app.models import Market
 
@@ -12,7 +13,7 @@ def list_markets(request: Request, db: Session = Depends(get_db), district: str 
     if district:
         q = q.filter(Market.district == district)
     if near_lat is not None and near_lng is not None:
-        q = q.filter(text(f"ST_DWithin(location_geog, ST_GeographyFromText('POINT({near_lng} {near_lat})'), {radius_km*1000})"))
+        q = q.filter(text("ST_DWithin(location_geog, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography, :rad)").bindparams(lng=near_lng, lat=near_lat, rad=radius_km*1000))
     total = q.count()
     items = q.offset((page-1)*limit).limit(limit).all()
     data = [{"id": str(m.id), "name": m.name, "district": m.district, "state": m.state, "latitude": float(m.latitude) if m.latitude else None, "longitude": float(m.longitude) if m.longitude else None, "market_type": m.market_type} for m in items]

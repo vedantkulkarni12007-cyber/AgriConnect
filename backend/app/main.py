@@ -1,29 +1,33 @@
-import uuid
 import time
+import uuid
+
 from fastapi import FastAPI, Request
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
-from app.core.errors import validation_exception_handler, generic_exception_handler
-from app.modules.health.router import router as health_router
-from app.modules.auth.router import router as auth_router
-from app.modules.users.router import router as users_router
-from app.modules.crops.router import router as crops_router
-from app.modules.markets.router import router as markets_router
-from app.modules.prices.router import router as prices_router
-from app.modules.lots.router import router as lots_router
-from app.modules.matching.router import router as matching_router
-from app.modules.offers.router import router as offers_router
-from app.modules.reservations.router import router as reservations_router
-from app.modules.transactions.router import router as transactions_router
-from app.modules.storage.router import router as storage_router
-from app.modules.disputes.router import router as disputes_router
-from app.modules.notifications.router import router as notifications_router
+from app.core.errors import generic_exception_handler, validation_exception_handler
 from app.modules.admin.router import router as admin_router
+from app.modules.auth.router import router as auth_router
+from app.modules.crops.router import router as crops_router
+from app.modules.disputes.router import router as disputes_router
+from app.modules.health.router import router as health_router
+from app.modules.lots.router import router as lots_router
+from app.modules.markets.router import router as markets_router
+from app.modules.matching.router import router as matching_router
+from app.modules.metrics.router import REQUEST_COUNT, REQUEST_LATENCY
 from app.modules.metrics.router import router as metrics_router
+from app.modules.notifications.router import router as notifications_router
+from app.modules.offers.router import router as offers_router
+from app.modules.prices.router import router as prices_router
+from app.modules.reservations.router import router as reservations_router
+from app.modules.storage.router import router as storage_router
+from app.modules.transactions.router import router as transactions_router
+from app.modules.users.router import router as users_router
+
 
 def create_app() -> FastAPI:
+    settings.validate_prod()
     app = FastAPI(
         title=settings.app_name,
         version=settings.app_version,
@@ -47,7 +51,10 @@ def create_app() -> FastAPI:
         start = time.time()
         response = await call_next(request)
         response.headers["X-Request-ID"] = rid
-        response.headers["X-Process-Time-ms"] = str(round((time.time() - start) * 1000, 2))
+        elapsed = round((time.time() - start) * 1000, 2)
+        response.headers["X-Process-Time-ms"] = str(elapsed)
+        REQUEST_COUNT.labels(method=request.method, path=request.url.path, status=response.status_code).inc()
+        REQUEST_LATENCY.observe(time.time() - start)
         return response
 
     app.add_exception_handler(RequestValidationError, validation_exception_handler)

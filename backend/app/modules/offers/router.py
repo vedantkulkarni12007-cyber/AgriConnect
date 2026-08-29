@@ -1,12 +1,14 @@
 import uuid
-from datetime import datetime, timezone, timedelta
-from fastapi import APIRouter, Depends, Request, HTTPException, Query
-from sqlalchemy.orm import Session
+from datetime import datetime, timedelta, timezone
+
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, Field
+from sqlalchemy.orm import Session
+
 from app.core.database import get_db
 from app.core.deps import get_current_user
 from app.core.idempotency import check_idempotency, save_idempotency
-from app.models import Offer, Lot, User, AuditLog, OutboxEvent, Reservation
+from app.models import AuditLog, Lot, Offer, OutboxEvent, Reservation, User
 
 router = APIRouter(prefix="/offers", tags=["offers"])
 
@@ -37,7 +39,11 @@ def create_offer(data: CreateOfferRequest, request: Request, db: Session = Depen
         raise HTTPException(status_code=404, detail="Lot not found")
     if float(data.quantity) > float(lot.quantity):
         raise HTTPException(status_code=409, detail="Offer quantity exceeds lot quantity")
-    offer = Offer(id=uuid.uuid4(), lot_id=lot.id, buyer_id=user.id, owner_id=lot.owner_id, quantity=data.quantity, price_per_unit=data.price_per_unit, total_value=float(data.quantity)*float(data.price_per_unit), message=data.message, expires_at=data.expires_at or (datetime.now(timezone.utc)+timedelta(days=3)), status="PENDING")
+    # lock lot row to prevent race
+    lot_locked = db.query(Lot).filter(Lot.id==lot.id).with_for_update().first()
+    if float(data.quantity) > float(lot_locked.quantity):
+        raise HTTPException(status_code=409, detail="Offer quantity exceeds lot quantity")
+    offer = Offer(id=uuid.uuid4(), lot_id=lot_locked.id, buyer_id=user.id, owner_id=lot_locked.owner_id, quantity=data.quantity, price_per_unit=data.price_per_unit, total_value=float(data.quantity)*float(data.price_per_unit), message=data.message, expires_at=data.expires_at or (datetime.now(timezone.utc)+timedelta(days=3)), status="PENDING")
     db.add(offer)
     rid=getattr(request.state,"request_id",str(uuid.uuid4()))
     db.add(AuditLog(actor_id=str(user.id), action="offer.create", entity="offers", entity_id=str(offer.id), after={"lot_id":str(lot.id),"quantity":data.quantity,"price":data.price_per_unit}, request_id=rid))
@@ -107,10 +113,13 @@ def accept_offer(offer_id: str, request: Request, db: Session = Depends(get_db),
         raise HTTPException(status_code=403, detail="Not participant")
     if o.status.upper() != "PENDING":
         raise HTTPException(status_code=409, detail="Offer not pending")
-    # check lot quantity with lock
-    lot=db.get(Lot, o.lot_id)
+    lot=db.query(Lot).filter(Lot.id==o.lot_id).with_for_update().first()
     if float(o.quantity) > float(lot.quantity):
         raise HTTPException(status_code=409, detail="Insufficient lot quantity")
+    allocated=db.query(Reservation).filter(Reservation.lot_id==lot.id, Reservation.status=="ACTIVE").with_for_update().all()
+    total_alloc=sum(float(r.quantity) for r in allocated)
+    if total_alloc + float(o.quantity) > float(lot.quantity):
+        raise HTTPException(status_code=409, detail="Insufficient remaining quantity")
     o.status="ACCEPTED"
     # create reservation
     res=Reservation(id=uuid.uuid4(), lot_id=lot.id, buyer_id=o.buyer_id, offer_id=o.id, quantity=o.quantity, status="ACTIVE", reserved_at=datetime.now(timezone.utc), expires_at=datetime.now(timezone.utc)+timedelta(hours=48))

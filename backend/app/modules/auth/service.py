@@ -1,11 +1,19 @@
-from sqlalchemy.orm import Session
-from fastapi import HTTPException, status, Request
 import uuid
 
-from app.models import User, AuditLog, OutboxEvent
-from app.core.security import hash_password, verify_password, create_access_token, create_refresh_token, decode_token
-from app.core.config import settings
+from fastapi import HTTPException, Request, status
 from geoalchemy2.elements import WKTElement
+from sqlalchemy.orm import Session
+
+from app.core.config import settings
+from app.core.security import (
+    create_access_token,
+    create_refresh_token,
+    decode_token,
+    hash_password,
+    verify_password,
+)
+from app.models import AuditLog, OutboxEvent, User
+
 
 def _geog(lat, lng):
     if lat is None or lng is None:

@@ -1,13 +1,25 @@
 import uuid
-from datetime import date, datetime
-from sqlalchemy import (
-    Column, String, Text, Integer, Boolean, DateTime, Date, Numeric, ForeignKey, UniqueConstraint, Index, CheckConstraint, JSON, ARRAY
-)
-from sqlalchemy.dialects.postgresql import UUID, JSONB
-from sqlalchemy.orm import relationship
+from datetime import datetime
+
 from geoalchemy2 import Geography
+from sqlalchemy import (
+    ARRAY,
+    Boolean,
+    CheckConstraint,
+    Column,
+    Date,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    Numeric,
+    Text,
+    UniqueConstraint,
+)
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 
 from app.core.database import Base
+
 
 def gen_uuid():
     return str(uuid.uuid4())

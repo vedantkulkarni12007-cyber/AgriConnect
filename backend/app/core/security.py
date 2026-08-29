@@ -18,18 +18,20 @@ def verify_password(plain: str, hashed: str) -> bool:
 
 
 def create_access_token(sub: str, role: str, extra: dict[str, Any] | None = None) -> str:
+    import uuid
     now = datetime.now(timezone.utc)
     exp = now + timedelta(minutes=settings.jwt_access_ttl_min)
-    payload: dict[str, Any] = {"sub": sub, "role": role, "iat": now, "exp": exp, "type": "access"}
+    payload: dict[str, Any] = {"sub": sub, "role": role, "iat": now, "exp": exp, "type": "access", "jti": str(uuid.uuid4())}
     if extra:
         payload.update(extra)
     return jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
 
 
 def create_refresh_token(sub: str) -> str:
+    import uuid
     now = datetime.now(timezone.utc)
     exp = now + timedelta(days=settings.jwt_refresh_ttl_days)
-    payload = {"sub": sub, "iat": now, "exp": exp, "type": "refresh"}
+    payload = {"sub": sub, "iat": now, "exp": exp, "type": "refresh", "jti": str(uuid.uuid4())}
     return jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
 
 

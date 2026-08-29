@@ -1,9 +1,9 @@
-from fastapi import APIRouter, Depends, Request, Query, HTTPException
+
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+
 from app.core.database import get_db
-from app.models import PriceObservation, Crop, Market
-from datetime import date, timedelta
+from app.models import Crop, Market, PriceObservation
 
 router = APIRouter(prefix="/prices", tags=["prices"])
 

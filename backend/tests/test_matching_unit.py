@@ -1,7 +1,11 @@
 from app.modules.matching.service import (
-    calculate_crop_score, calculate_grade_score, calculate_quantity_score,
-    calculate_distance_score, calculate_price_score, calculate_verification_score
+    calculate_crop_score,
+    calculate_distance_score,
+    calculate_grade_score,
+    calculate_quantity_score,
+    calculate_verification_score,
 )
+
 
 def test_crop_score_match():
     s,_ = calculate_crop_score("Onion", ["Onion","Tomato"], {"crop":30})

@@ -1,7 +1,8 @@
-from fastapi import Request, HTTPException
+from fastapi import Request
 from sqlalchemy.orm import Session
+
 from app.models import IdempotencyKey
-import json
+
 
 def check_idempotency(request: Request, db: Session):
     key = request.headers.get("Idempotency-Key")

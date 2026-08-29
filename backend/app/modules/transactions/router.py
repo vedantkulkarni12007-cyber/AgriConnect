@@ -1,11 +1,13 @@
 import uuid
-from fastapi import APIRouter, Depends, Request, HTTPException, Query
-from sqlalchemy.orm import Session
+
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
+
 from app.core.database import get_db
 from app.core.deps import get_current_user
 from app.core.idempotency import check_idempotency, save_idempotency
-from app.models import Transaction, Reservation, Lot, AuditLog, OutboxEvent, User
+from app.models import AuditLog, Lot, OutboxEvent, Reservation, Transaction
 
 router = APIRouter(prefix="/transactions", tags=["transactions"])
 

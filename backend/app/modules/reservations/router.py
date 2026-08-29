@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Depends, Request, Query
+from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.orm import Session
+
 from app.core.database import get_db
 from app.core.deps import get_current_user
-from app.models import Reservation, Lot
+from app.models import Lot, Reservation
 
 router = APIRouter(prefix="/reservations", tags=["reservations"])
 
