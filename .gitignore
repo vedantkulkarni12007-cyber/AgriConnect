@@ -16,6 +16,9 @@ venv/
 env/
 ENV/
 .venv/
+*.db
+*.sqlite
+*.sqlite3
 
 # ---- Environment files (NEVER commit these!) ----
 .env
