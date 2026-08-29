@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.core.errors import generic_exception_handler, validation_exception_handler
+from app.core.otel import init_otel
 from app.modules.admin.router import router as admin_router
 from app.modules.auth.router import router as auth_router
 from app.modules.crops.router import router as crops_router
@@ -35,6 +36,8 @@ def create_app() -> FastAPI:
         redoc_url="/redoc",
         openapi_url=f"{settings.api_v1_prefix}/openapi.json",
     )
+
+    init_otel(app)
 
     app.add_middleware(
         CORSMiddleware,
