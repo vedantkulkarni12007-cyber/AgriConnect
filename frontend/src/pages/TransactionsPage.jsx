@@ -4,27 +4,32 @@
 // =============================================================
 
 import { useState, useEffect } from 'react';
-import { CheckCircle2, Circle, Clock, IndianRupee, Package, Truck, Wallet } from 'lucide-react';
+import { CheckCircle2, Clock, Package, Truck, Wallet } from 'lucide-react';
 import { getTransactions } from '../services/api';
 import { StatusBadge } from '../components/Badges';
 import { LoadingState, EmptyState } from '../components/States';
 
 // Stage definitions
 const STAGES = [
-  { key: 'offer_created',      label: 'Offer Created',       icon: Package },
-  { key: 'offer_accepted',     label: 'Offer Accepted',      icon: CheckCircle2 },
-  { key: 'produce_dispatched', label: 'Produce Dispatched',  icon: Truck },
-  { key: 'payment_pending',    label: 'Payment Pending',     icon: Clock },
-  { key: 'payment_received',   label: 'Payment Received',    icon: Wallet },
-  { key: 'completed',          label: 'Completed',           icon: CheckCircle2 },
+  { key: 'CREATED',            label: 'Order Created',       icon: Package },
+  { key: 'PAYMENT_PENDING',    label: 'Escrow Initiated',    icon: Clock },
+  { key: 'PAYMENT_CONFIRMED',  label: 'Payment Escrowed',    icon: Wallet },
+  { key: 'PROCESSING',         label: 'Produce Prepared',    icon: Package },
+  { key: 'READY_FOR_DISPATCH', label: 'Ready for Dispatch',  icon: Truck },
+  { key: 'IN_TRANSIT',         label: 'In Transit',          icon: Truck },
+  { key: 'DELIVERED',          label: 'Delivered',           icon: CheckCircle2 },
+  { key: 'COMPLETED',          label: 'Settled & Completed', icon: CheckCircle2 },
 ];
 
-function TransactionTimeline({ stages_completed, current_stage }) {
+function TransactionTimeline({ status }) {
+  const currentIdx = STAGES.findIndex(s => s.key === status);
+  const activeIdx = currentIdx >= 0 ? currentIdx : 0;
+
   return (
     <div className="flex flex-col gap-0 mt-4">
       {STAGES.map((stage, i) => {
-        const done = stages_completed?.includes(stage.key);
-        const current = stage.key === current_stage;
+        const done = i <= activeIdx;
+        const current = i === activeIdx;
         const Icon = stage.icon;
 
         return (
@@ -51,11 +56,11 @@ function TransactionTimeline({ stages_completed, current_stage }) {
                 : 'text-gray-400'
               }`}>
                 {stage.label}
-                {current && !done && (
+                {current && (
                   <span className="ml-2 badge-yellow text-xs">Current</span>
                 )}
-                {done && stage.key !== current_stage && (
-                  <span className="ml-2 text-xs text-green-500">✓</span>
+                {done && !current && (
+                  <span className="ml-2 text-xs text-green-500 font-bold">✓</span>
                 )}
               </p>
             </div>
@@ -68,6 +73,10 @@ function TransactionTimeline({ stages_completed, current_stage }) {
 
 function TransactionCard({ txn }) {
   const [showTimeline, setShowTimeline] = useState(false);
+  const total = Number(txn.gross_value || txn.total_amount || 0);
+  const status = (txn.status || 'CREATED').toUpperCase();
+  const stageIdx = STAGES.findIndex(s => s.key === status);
+  const progressPct = stageIdx >= 0 ? ((stageIdx + 1) / STAGES.length) * 100 : 15;
 
   return (
     <div className="card">
@@ -75,20 +84,20 @@ function TransactionCard({ txn }) {
       <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-4">
         <div>
           <div className="flex items-center gap-2 flex-wrap mb-1">
-            <span className="font-mono text-xs text-gray-400">#{txn.id}</span>
-            <StatusBadge status={txn.payment_status} />
+            <span className="font-mono text-xs text-gray-400">#{String(txn.id).slice(0, 8)}</span>
+            <StatusBadge status={status} />
           </div>
-          <h3 className="font-bold text-gray-900">{txn.buyer}</h3>
-          <p className="text-sm text-gray-500 mt-0.5">{txn.crop} · {txn.quantity} quintals</p>
+          <h3 className="font-bold text-gray-900">{txn.crop_name || txn.crop || 'Produce Order'}</h3>
+          <p className="text-sm text-gray-500 mt-0.5">Lot #{String(txn.lot_id || '').slice(0, 8)}</p>
         </div>
 
         {/* Amount */}
         <div className="text-right">
           <p className="text-2xl font-bold text-green-800">
-            ₹{txn.total_amount.toLocaleString('en-IN')}
+            ₹{total.toLocaleString('en-IN')}
           </p>
           <p className="text-xs text-gray-400 mt-0.5">
-            ₹{txn.agreed_price.toLocaleString('en-IN')}/qtl × {txn.quantity} qtl
+            Gross Escrow Value
           </p>
         </div>
       </div>
@@ -97,36 +106,22 @@ function TransactionCard({ txn }) {
       <div className="bg-gray-50 rounded-xl p-3 mb-4">
         <div className="flex items-center justify-between">
           <p className="text-sm font-medium text-gray-700">
-            Current stage: <span className="text-green-700 font-semibold capitalize">
-              {txn.current_stage?.replace(/_/g, ' ')}
+            Current stage: <span className="text-green-700 font-semibold">
+              {status.replace(/_/g, ' ')}
             </span>
           </p>
-          <span className={`text-sm font-semibold ${
-            txn.payment_status === 'received' ? 'text-green-600'
-            : txn.payment_status === 'pending' ? 'text-amber-600'
-            : 'text-gray-500'
-          }`}>
-            Payment: {txn.payment_status}
+          <span className="text-xs text-gray-500 font-medium">
+            {stageIdx >= 0 ? `${stageIdx + 1} of ${STAGES.length}` : 'In progress'}
           </span>
         </div>
 
-        {/* Simple progress bar */}
+        {/* Progress bar */}
         <div className="mt-2 h-2 bg-gray-200 rounded-full overflow-hidden">
           <div
             className="h-full bg-green-500 rounded-full transition-all duration-500"
-            style={{
-              width: `${((txn.stages_completed?.length || 1) / STAGES.length) * 100}%`
-            }}
+            style={{ width: `${progressPct}%` }}
           />
         </div>
-        <p className="text-xs text-gray-400 mt-1">
-          {txn.stages_completed?.length || 1} of {STAGES.length} stages complete
-        </p>
-      </div>
-
-      {/* Disclaimer */}
-      <div className="bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 text-xs text-amber-700 mb-4">
-        ⚠️ Demo Transaction — No real money is involved. This is for demonstration only.
       </div>
 
       {/* Timeline toggle */}
@@ -138,10 +133,7 @@ function TransactionCard({ txn }) {
       </button>
 
       {showTimeline && (
-        <TransactionTimeline
-          stages_completed={txn.stages_completed}
-          current_stage={txn.current_stage}
-        />
+        <TransactionTimeline status={status} />
       )}
     </div>
   );
@@ -154,20 +146,22 @@ export default function TransactionsPage() {
   useEffect(() => {
     async function load() {
       const res = await getTransactions();
-      if (res.success) setTransactions(res.data);
+      if (res && res.success && Array.isArray(res.data)) {
+        setTransactions(res.data);
+      }
       setLoading(false);
     }
     load();
   }, []);
 
-  const totalAmount = transactions.reduce((s, t) => s + t.total_amount, 0);
-  const received = transactions.filter(t => t.payment_status === 'received');
+  const totalAmount = transactions.reduce((s, t) => s + Number(t.gross_value || t.total_amount || 0), 0);
+  const completedCount = transactions.filter(t => (t.status || '').toUpperCase() === 'COMPLETED').length;
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Transactions</h1>
-        <p className="text-gray-500 text-sm mt-1">Track your sales from offer to payment</p>
+        <h1 className="text-2xl font-bold text-gray-900">Orders & Transactions</h1>
+        <p className="text-gray-500 text-sm mt-1">Track escrow transactions and delivery milestones</p>
       </div>
 
       {/* Summary */}
@@ -175,11 +169,11 @@ export default function TransactionsPage() {
         <div className="grid grid-cols-3 gap-4">
           <div className="card text-center p-4">
             <p className="text-2xl font-bold text-gray-900">{transactions.length}</p>
-            <p className="text-sm text-gray-500 mt-0.5">Total</p>
+            <p className="text-sm text-gray-500 mt-0.5">Total Orders</p>
           </div>
           <div className="card text-center p-4">
-            <p className="text-2xl font-bold text-green-700">{received.length}</p>
-            <p className="text-sm text-gray-500 mt-0.5">Paid</p>
+            <p className="text-2xl font-bold text-green-700">{completedCount}</p>
+            <p className="text-sm text-gray-500 mt-0.5">Completed</p>
           </div>
           <div className="card text-center p-4">
             <p className="text-lg font-bold text-gray-900">₹{(totalAmount / 100000).toFixed(1)}L</p>
@@ -191,7 +185,7 @@ export default function TransactionsPage() {
       {loading ? <LoadingState /> : transactions.length === 0 ? (
         <EmptyState
           title="No transactions yet"
-          description="Accept a buyer offer to start a transaction."
+          description="Accept a buyer offer to begin an escrow order transaction."
         />
       ) : (
         <div className="space-y-4">

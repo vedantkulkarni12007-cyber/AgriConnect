@@ -278,7 +278,36 @@ export async function createOffer(offerData) {
   return { success: false, error: res?.error || 'Failed to submit offer', message: res?.error };
 }
 
+export async function acceptOffer(offerId) {
+  if (isExplicitDemoMode()) {
+    return { success: true, data: { id: offerId, status: 'ACCEPTED' }, message: 'Offer accepted (Demo Mode)', provenance: 'demo' };
+  }
+  const res = await apiCall(`/api/v1/offers/${offerId}/accept`, { method: 'POST' });
+  if (res && res.success) return { ...res, provenance: 'live' };
+  return { success: false, error: res?.error || 'Failed to accept offer', message: res?.error };
+}
+
+export async function rejectOffer(offerId) {
+  if (isExplicitDemoMode()) {
+    return { success: true, data: { id: offerId, status: 'REJECTED' }, message: 'Offer declined (Demo Mode)', provenance: 'demo' };
+  }
+  const res = await apiCall(`/api/v1/offers/${offerId}/reject`, { method: 'POST' });
+  if (res && res.success) return { ...res, provenance: 'live' };
+  return { success: false, error: res?.error || 'Failed to decline offer', message: res?.error };
+}
+
+export async function counterOffer(offerId, counterData) {
+  if (isExplicitDemoMode()) {
+    return { success: true, data: { id: `counter-${Date.now()}`, status: 'PENDING' }, message: 'Counter offer created', provenance: 'demo' };
+  }
+  const res = await apiCall(`/api/v1/offers/${offerId}/counter`, { method: 'POST', body: JSON.stringify(counterData) });
+  if (res && res.success) return { ...res, provenance: 'live' };
+  return { success: false, error: res?.error || 'Failed to create counter offer', message: res?.error };
+}
+
 export async function updateOffer(offerId, status) {
+  if (status.toLowerCase() === 'accepted') return acceptOffer(offerId);
+  if (status.toLowerCase() === 'rejected') return rejectOffer(offerId);
   if (isExplicitDemoMode()) {
     return { success: true, data: { id: offerId, status }, message: `Offer ${status} (Demo Mode)`, provenance: 'demo' };
   }
