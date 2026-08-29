@@ -25,9 +25,12 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: { python-version: "3.13" }
-      - run: pip install -r backend/requirements.txt
-      - run: ruff check backend/app
-      - run: python -m mypy backend/app --ignore-missing-imports || true
+      - run: pip install -r requirements.txt
+        working-directory: backend
+      - run: python -m ruff check app
+        working-directory: backend
+      - run: python -m mypy app --ignore-missing-imports || true
+        working-directory: backend
       - env:
           DATABASE_URL: postgresql+psycopg://krishilink:krishilink@localhost:5432/krishilink_test
           REDIS_URL: redis://localhost:6379/0
