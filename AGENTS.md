@@ -35,3 +35,42 @@
 - PostGIS GiST indexes duplicated (`idx_*` + `ix_*` on same GEOGRAPHY) → `relation already exists`; fix: deduplicate + `CREATE INDEX IF NOT EXISTS` via `op.execute`
 - Autogenerate drops tiger/postgis internal tables and `audit_logs`/`outbox_events` if Base misses them; fix: add SystemConfiguration/AuditLog/OutboxEvent to `app.models` + filter or clean migration
 - Force-pushing to main hides history but leaves stale browser cache; always hard refresh and verify via `ls-remote`
+
+## Progress (2026-08-29)
+### ✅ Completed Phases
+- **Phase 0-1:** Architecture docs + ADRs
+- **Phase 2:** Infra (FastAPI, PostGIS, Docker Compose, Alembic, CI)
+- **Phase 3:** DB migration (27 tables, PostGIS GEOGRAPHY, verified)
+- **Phase 4:** Auth/RBAC (JWT, Argon2, register/login/refresh/me)
+- **Phase 5:** API foundation (envelope, idempotency)
+- **Phase 6:** Frontend design system (shadcn-inspired, zod, apiClient)
+- **Phase 7-10:** Crops/Markets/Prices/Lots with QR, idempotency
+- **Phase 11:** Matching engine (7-factor 100pt, explainable)
+- **Phase 12-16:** Offers/Negotiation, Reservations, Transactions FSM, Storage, Disputes/Evidence
+- **Phase 17-19:** Notifications, Admin, Metrics + 11 unit tests
+- **Phase 20-22:** Postman collection, DEMO_GUIDE (WHEAT-NASHIK-DEMO-001)
+
+### ✅ Recent Fixes (commit c8bb5b9)
+- P0: `gen_public_id` race → UUID-based (`KL-LOT-{uuid10}`)
+- P0: ST_DWithin SQL injection → parameterized `ST_MakePoint`
+- P1: Rate limiter (`backend/app/core/rate_limit.py`, Redis sliding window)
+- P1: Prometheus metrics wired in middleware (`REQUEST_COUNT`, `REQUEST_LATENCY`)
+- P1: Missing indexes via Alembic migration `6442a44b1f27`
+- Integration tests: auth, lots, offers, transactions FSM (29 tests total)
+- Config: `pytest.ini`, `conftest.py`, `ruff.toml` (excludes legacy), `mypy.ini`
+- Frontend: `services/api.js` → FastAPI v1 + DEMO fallback
+
+### ✅ S3 Adapter (commit pending)
+- `backend/app/core/s3.py` — boto3 client, upload, presigned URLs
+- Disputes: upload endpoint + download via presigned URL
+- Storage: bucket listing + presigned URL endpoints
+
+### 🔄 Remaining
+- [ ] Celery outbox poller task (added to `celery_app.py` beat schedule)
+- [ ] Exclude legacy Flask from CI (ruff.toml updated, CI yaml pending)
+- [ ] OTel instrumentation
+- [ ] Test coverage → 80% (currently ~11 unit + 18 integration = 29 tests)
+- [ ] Next.js migration (deferred)
+
+## Current Branch
+`feature/production-rebuild-2.0` (HEAD `c8bb5b9`, CI green)
