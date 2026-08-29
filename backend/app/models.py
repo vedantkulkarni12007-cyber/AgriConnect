@@ -15,6 +15,7 @@ from sqlalchemy import (
     Numeric,
     Text,
     UniqueConstraint,
+    func,
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 
@@ -30,7 +31,7 @@ class SystemConfiguration(Base):
     value = Column(JSONB, nullable=False)
     version = Column(Integer, server_default="1", nullable=False)
     updated_by = Column(Text, nullable=True)
-    updated_at = Column(DateTime(timezone=True), server_default="now()")
+    updated_at = Column(DateTime(timezone=True), server_default=func.now())
 
 class AuditLog(Base):
     __tablename__ = "audit_logs"
@@ -42,7 +43,7 @@ class AuditLog(Base):
     before = Column(JSONB, nullable=True)
     after = Column(JSONB, nullable=True)
     request_id = Column(Text, nullable=True)
-    created_at = Column(DateTime(timezone=True), server_default="now()", nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
 class OutboxEvent(Base):
     __tablename__ = "outbox_events"
@@ -53,7 +54,7 @@ class OutboxEvent(Base):
     payload = Column(JSONB, nullable=False)
     status = Column(Text, server_default="PENDING", nullable=False)
     retry_count = Column(Integer, server_default="0", nullable=False)
-    created_at = Column(DateTime(timezone=True), server_default="now()", nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
 class User(Base):
     __tablename__ = "users"
@@ -69,8 +70,8 @@ class User(Base):
     location_geog = Column(Geography(geometry_type="POINT", srid=4326), nullable=True)
     is_verified = Column(Boolean, default=False, nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
-    created_at = Column(DateTime(timezone=True), server_default="now()", nullable=False)
-    updated_at = Column(DateTime(timezone=True), server_default="now()", onupdate=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=datetime.utcnow, nullable=False)
     deleted_at = Column(DateTime(timezone=True), nullable=True)
     __table_args__ = (
         CheckConstraint("role IN ('farmer','buyer','fpo','admin','operator')", name="ck_users_role"),
@@ -84,8 +85,8 @@ class FarmerProfile(Base):
     primary_crops = Column(ARRAY(Text), nullable=True)
     bank_account_encrypted = Column(Text, nullable=True)
     ifsc_encrypted = Column(Text, nullable=True)
-    created_at = Column(DateTime(timezone=True), server_default="now()")
-    updated_at = Column(DateTime(timezone=True), server_default="now()")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now())
 
 class BuyerProfile(Base):
     __tablename__ = "buyer_profiles"
@@ -102,8 +103,8 @@ class BuyerProfile(Base):
     rating = Column(Numeric(3,2), default=0)
     total_transactions = Column(Integer, default=0)
     location_geog = Column(Geography(geometry_type="POINT", srid=4326), nullable=True)
-    created_at = Column(DateTime(timezone=True), server_default="now()")
-    updated_at = Column(DateTime(timezone=True), server_default="now()")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now())
     __table_args__ = (
         CheckConstraint("business_type IN ('trader','processor','exporter','retailer') OR business_type IS NULL", name="ck_buyer_type"),
     )
@@ -117,8 +118,8 @@ class FPOProfile(Base):
     member_count = Column(Integer, default=0)
     total_land_acres = Column(Numeric(12,2), nullable=True)
     primary_crops = Column(ARRAY(Text), nullable=True)
-    created_at = Column(DateTime(timezone=True), server_default="now()")
-    updated_at = Column(DateTime(timezone=True), server_default="now()")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now())
 
 class Crop(Base):
     __tablename__ = "crops"
@@ -129,7 +130,7 @@ class Crop(Base):
     category = Column(Text, nullable=True)
     unit = Column(Text, default="quintal")
     image_url = Column(Text, nullable=True)
-    created_at = Column(DateTime(timezone=True), server_default="now()")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 class CropVariety(Base):
     __tablename__ = "crop_varieties"
@@ -151,7 +152,7 @@ class Market(Base):
     location_geog = Column(Geography(geometry_type="POINT", srid=4326), nullable=True)
     market_type = Column(Text, default="APMC")
     is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime(timezone=True), server_default="now()")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
     __table_args__ = (Index("ix_markets_geog", "location_geog", postgresql_using="gist"),)
 
 class PriceSource(Base):
@@ -166,7 +167,7 @@ class IngestionRun(Base):
     __tablename__ = "ingestion_runs"
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     source_id = Column(UUID(as_uuid=True), ForeignKey("price_sources.id"), nullable=True)
-    started_at = Column(DateTime(timezone=True), server_default="now()")
+    started_at = Column(DateTime(timezone=True), server_default=func.now())
     finished_at = Column(DateTime(timezone=True), nullable=True)
     status = Column(Text, nullable=False, default="running")
     records_fetched = Column(Integer, default=0)
@@ -190,13 +191,13 @@ class PriceObservation(Base):
     source_record_id = Column(Text, nullable=True)
     source_url = Column(Text, nullable=True)
     published_at = Column(DateTime(timezone=True), nullable=True)
-    retrieved_at = Column(DateTime(timezone=True), server_default="now()")
+    retrieved_at = Column(DateTime(timezone=True), server_default=func.now())
     ingestion_run_id = Column(UUID(as_uuid=True), ForeignKey("ingestion_runs.id"), nullable=True)
     parser_version = Column(Text, nullable=True)
     normalization_version = Column(Text, nullable=True)
     raw_payload_hash = Column(Text, nullable=True)
     quality_status = Column(Text, nullable=False, default="MEDIUM")
-    created_at = Column(DateTime(timezone=True), server_default="now()")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
     __table_args__ = (
         UniqueConstraint("crop_id","market_id","price_date","source_id", name="uq_price_obs"),
         CheckConstraint("modal_price > 0", name="ck_modal_positive"),
@@ -224,8 +225,8 @@ class Lot(Base):
     available_from = Column(Date, nullable=True)
     available_until = Column(Date, nullable=True)
     status = Column(Text, nullable=False, default="DRAFT")
-    created_at = Column(DateTime(timezone=True), server_default="now()")
-    updated_at = Column(DateTime(timezone=True), server_default="now()")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now())
     deleted_at = Column(DateTime(timezone=True), nullable=True)
     __table_args__ = (
         CheckConstraint("quantity > 0", name="ck_lot_qty_pos"),
@@ -246,7 +247,7 @@ class LotAllocation(Base):
     allocated_quantity = Column(Numeric(12,2), nullable=False)
     fulfilled_quantity = Column(Numeric(12,2), default=0)
     status = Column(Text, default="ALLOCATED")
-    created_at = Column(DateTime(timezone=True), server_default="now()")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
     __table_args__ = (
         CheckConstraint("allocated_quantity > 0", name="ck_alloc_qty"),
         Index("ix_alloc_lot", "lot_id"),
@@ -271,7 +272,7 @@ class BuyerRequirement(Base):
     storage_requirements = Column(JSONB, nullable=True)
     quality_requirements = Column(JSONB, nullable=True)
     is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime(timezone=True), server_default="now()")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 class MatchRuleSet(Base):
     __tablename__ = "match_rulesets"
@@ -279,7 +280,7 @@ class MatchRuleSet(Base):
     version = Column(Text, unique=True, nullable=False)
     weights = Column(JSONB, nullable=False)
     is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime(timezone=True), server_default="now()")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 class Match(Base):
     __tablename__ = "matches"
@@ -292,7 +293,7 @@ class Match(Base):
     component_scores = Column(JSONB, nullable=False)
     final_score = Column(Integer, nullable=False)
     explanation = Column(JSONB, nullable=False)
-    created_at = Column(DateTime(timezone=True), server_default="now()")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
     __table_args__ = (
         UniqueConstraint("lot_id","buyer_id","ruleset_version", name="uq_match_lot_buyer_ruleset"),
         Index("ix_matches_lot_score", "lot_id","final_score"),
@@ -311,8 +312,8 @@ class Offer(Base):
     expires_at = Column(DateTime(timezone=True), nullable=True)
     status = Column(Text, default="PENDING")
     parent_offer_id = Column(UUID(as_uuid=True), ForeignKey("offers.id"), nullable=True)
-    created_at = Column(DateTime(timezone=True), server_default="now()")
-    updated_at = Column(DateTime(timezone=True), server_default="now()")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now())
     __table_args__ = (
         CheckConstraint("quantity > 0", name="ck_offer_qty"),
         CheckConstraint("status IN ('PENDING','COUNTERED','ACCEPTED','REJECTED','EXPIRED','CANCELLED','pending','accepted','rejected','expired','completed')", name="ck_offer_status"),
@@ -328,7 +329,7 @@ class Reservation(Base):
     offer_id = Column(UUID(as_uuid=True), ForeignKey("offers.id"), nullable=False)
     quantity = Column(Numeric(12,2), nullable=False)
     status = Column(Text, default="ACTIVE")
-    reserved_at = Column(DateTime(timezone=True), server_default="now()")
+    reserved_at = Column(DateTime(timezone=True), server_default=func.now())
     expires_at = Column(DateTime(timezone=True), nullable=True)
     __table_args__ = (
         CheckConstraint("status IN ('ACTIVE','EXPIRED','CONSUMED','CANCELLED')", name="ck_res_status"),
@@ -349,8 +350,8 @@ class Transaction(Base):
     fees = Column(Numeric(12,2), nullable=True)
     net_realization = Column(Numeric(12,2), nullable=True)
     idempotency_key = Column(Text, unique=True, nullable=True)
-    created_at = Column(DateTime(timezone=True), server_default="now()")
-    updated_at = Column(DateTime(timezone=True), server_default="now()")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now())
     __table_args__ = (
         CheckConstraint("status IN ('CREATED','PAYMENT_PENDING','PAYMENT_CONFIRMED','PROCESSING','READY_FOR_DISPATCH','IN_TRANSIT','DELIVERED','COMPLETED','DISPUTED','CANCELLED','REFUNDED','offer_accepted','payment_pending','payment_received','completed')", name="ck_txn_status"),
         Index("ix_txn_seller", "seller_id"),
@@ -374,8 +375,8 @@ class Payment(Base):
     amount = Column(Numeric(12,2), nullable=False)
     currency = Column(Text, default="INR")
     status = Column(Text, default="PENDING")
-    created_at = Column(DateTime(timezone=True), server_default="now()")
-    updated_at = Column(DateTime(timezone=True), server_default="now()")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now())
 
 class Delivery(Base):
     __tablename__ = "deliveries"
@@ -386,7 +387,7 @@ class Delivery(Base):
     distance_km = Column(Numeric(10,2), nullable=True)
     estimated_transport_cost = Column(Numeric(12,2), nullable=True)
     status = Column(Text, default="PENDING")
-    created_at = Column(DateTime(timezone=True), server_default="now()")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 class StorageFacility(Base):
     __tablename__ = "storage_facilities"
@@ -402,7 +403,7 @@ class StorageFacility(Base):
     contact = Column(Text, nullable=True)
     verification_status = Column(Text, default="PENDING")
     status = Column(Text, default="ACTIVE")
-    created_at = Column(DateTime(timezone=True), server_default="now()")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
     __table_args__ = (
         CheckConstraint("available_capacity >= 0 OR available_capacity IS NULL", name="ck_storage_avail"),
     )
@@ -417,8 +418,8 @@ class Dispute(Base):
     status = Column(Text, default="OPEN")
     resolution = Column(Text, nullable=True)
     operator_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
-    created_at = Column(DateTime(timezone=True), server_default="now()")
-    updated_at = Column(DateTime(timezone=True), server_default="now()")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now())
     __table_args__ = (CheckConstraint("status IN ('OPEN','UNDER_REVIEW','RESOLVED','REJECTED','ESCALATED','open','under_review','resolved','closed')", name="ck_dispute_status"),)
 
 class Evidence(Base):
@@ -432,7 +433,7 @@ class Evidence(Base):
     file_hash = Column(Text, nullable=False)
     mime_type = Column(Text, nullable=True)
     metadata_json = Column("metadata", JSONB, nullable=True)
-    created_at = Column(DateTime(timezone=True), server_default="now()")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 class Notification(Base):
     __tablename__ = "notifications"
@@ -443,7 +444,7 @@ class Notification(Base):
     message = Column(Text, nullable=False)
     is_read = Column(Boolean, default=False)
     related_id = Column(UUID(as_uuid=True), nullable=True)
-    created_at = Column(DateTime(timezone=True), server_default="now()")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
     __table_args__ = (Index("ix_notif_user_read", "user_id","is_read"),)
 
 class IdempotencyKey(Base):
@@ -451,4 +452,4 @@ class IdempotencyKey(Base):
     key = Column(Text, primary_key=True)
     response_status = Column(Integer, nullable=True)
     response_body = Column(JSONB, nullable=True)
-    created_at = Column(DateTime(timezone=True), server_default="now()")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())

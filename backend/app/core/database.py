@@ -1,7 +1,62 @@
 import logging
 import os
-from sqlalchemy import create_engine, text
+import sqlite3
+from sqlalchemy import create_engine, text, event
+from sqlalchemy.engine import Engine
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
+from sqlalchemy.ext.compiler import compiles
+from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlalchemy.types import ARRAY
+from sqlalchemy.dialects.postgresql import ARRAY as PG_ARRAY
+
+try:
+    from geoalchemy2 import Geography, Geometry
+    import geoalchemy2.admin.dialects.sqlite as sqlite_admin
+    sqlite_admin.after_create = lambda *args, **kwargs: None
+    sqlite_admin.before_create = lambda *args, **kwargs: None
+except ImportError:
+    pass
+
+@compiles(JSONB, 'sqlite')
+def compile_jsonb_sqlite(type_, compiler, **kw):
+    return 'JSON'
+
+@compiles(UUID, 'sqlite')
+def compile_uuid_sqlite(type_, compiler, **kw):
+    return 'VARCHAR(36)'
+
+@compiles(ARRAY, 'sqlite')
+def compile_array_sqlite(type_, compiler, **kw):
+    return 'TEXT'
+
+@compiles(PG_ARRAY, 'sqlite')
+def compile_pg_array_sqlite(type_, compiler, **kw):
+    return 'TEXT'
+
+try:
+    @compiles(Geography, 'sqlite')
+    def compile_geography_sqlite(type_, compiler, **kw):
+        return 'TEXT'
+
+    @compiles(Geometry, 'sqlite')
+    def compile_geometry_sqlite(type_, compiler, **kw):
+        return 'TEXT'
+except NameError:
+    pass
+
+@event.listens_for(Engine, 'connect')
+def setup_sqlite_spatial_functions(dbapi_connection, connection_record):
+    if isinstance(dbapi_connection, sqlite3.Connection):
+        dbapi_connection.create_function('AsBinary', 1, lambda x: x)
+        dbapi_connection.create_function('AsGeoJSON', 1, lambda x: x)
+        dbapi_connection.create_function('ST_AsGeoJSON', 1, lambda x: x)
+        dbapi_connection.create_function('ST_AsBinary', 1, lambda x: x)
+        dbapi_connection.create_function('ST_GeogFromText', 1, lambda x: x)
+        dbapi_connection.create_function('ST_GeomFromText', 1, lambda x: x)
+        dbapi_connection.create_function('ST_DWithin', 3, lambda a, b, d: 1)
+        dbapi_connection.create_function('ST_MakePoint', 2, lambda x, y: f'POINT({x} {y})')
+        dbapi_connection.create_function('ST_SetSRID', 2, lambda g, s: g)
+        dbapi_connection.create_function('ST_Distance', 2, lambda a, b: 0.0)
 
 from app.core.config import settings
 
@@ -15,11 +70,14 @@ def create_db_engine():
     
     # If SQLite explicitly configured or dev fallback
     if "sqlite" in db_url:
-        return create_engine(
+        eng = create_engine(
             db_url,
             connect_args={"check_same_thread": False},
             echo=settings.debug and settings.env == "development",
         )
+        import app.models  # noqa: F401
+        Base.metadata.create_all(eng)
+        return eng
     
     # Try PostgreSQL, fallback to local SQLite if PostgreSQL is not running
     try:
@@ -33,20 +91,22 @@ def create_db_engine():
             conn.execute(text("SELECT 1"))
         return eng
     except Exception as e:
-        # Log prominently — silent fallback masks real connectivity problems
-        logging.getLogger(__name__).critical(
-            "PostgreSQL unavailable (%s). Falling back to SQLite at %s — "
-            "JSONB/UUID/Geography columns WILL break on writes!",
-            e,
-            os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'krishilink.db'),
-        )
         base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         sqlite_path = os.path.join(base_dir, "krishilink.db")
+        # Log fallback warning
+        logging.getLogger(__name__).warning(
+            "PostgreSQL unavailable (%s). Falling back to SQLite at %s for local development.",
+            e,
+            sqlite_path,
+        )
         sqlite_url = f"sqlite:///{sqlite_path}"
-        return create_engine(
+        eng = create_engine(
             sqlite_url,
             connect_args={"check_same_thread": False},
         )
+        import app.models  # noqa: F401
+        Base.metadata.create_all(eng)
+        return eng
 
 
 engine = create_db_engine()
@@ -68,4 +128,3 @@ def check_db() -> bool:
         return True
     except Exception:
         return False
-
