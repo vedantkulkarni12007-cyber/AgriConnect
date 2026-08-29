@@ -39,9 +39,10 @@ function SummaryCard({ title, value, sub, icon: Icon, color, accent }) {
 
 // ---- Best Price Hero Card (primary level) ----
 function BestPriceHeroCard({ trendData, prices, selectedCrop }) {
-  const best = prices
-    .filter(p => p.crop === selectedCrop)
-    .sort((a, b) => b.modal_price - a.modal_price)[0];
+  const priceList = Array.isArray(prices) ? prices : [];
+  const best = priceList
+    .filter(p => p && p.crop === selectedCrop)
+    .sort((a, b) => (b.modal_price || 0) - (a.modal_price || 0))[0];
 
   if (!best) return null;
 
@@ -199,7 +200,7 @@ export default function FarmerDashboard() {
         <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-6">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold mb-2">
-              {greeting}, {user?.name?.split(' ')[0]} 👋
+              {greeting}, {(user?.name || user?.full_name || 'Farmer').split(' ')[0]} 👋
             </h1>
             <div className="flex items-center gap-4 text-green-100 text-sm">
               <span className="flex items-center gap-1.5 bg-white/10 px-3 py-1 rounded-full backdrop-blur-sm">
@@ -350,24 +351,24 @@ export default function FarmerDashboard() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {prices.slice(0, 8).map(p => (
-                    <tr key={p.id} className="hover:bg-green-50/30 transition-colors">
+                  {(Array.isArray(prices) ? prices : []).slice(0, 8).map(p => (
+                    <tr key={p.id || `${p.crop}-${p.market}`} className="hover:bg-green-50/30 transition-colors">
                       <td className="py-3 font-semibold text-gray-800 flex items-center gap-2.5">
                         <img
                           src={getCropImage(p.crop)}
-                          alt={p.crop}
+                          alt={p.crop || 'Crop'}
                           className="w-7 h-7 rounded-md object-cover flex-shrink-0 border border-gray-100 shadow-2xs"
                         />
-                        <span>{p.crop}</span>
+                        <span>{p.crop || 'Crop'}</span>
                       </td>
                       <td className="py-3 text-gray-600">
                         <span className="flex items-center gap-1">
                           <MapPin className="w-3 h-3 text-gray-400" />
-                          {p.market}
+                          {p.market || 'APMC'}
                         </span>
                       </td>
                       <td className="py-3 text-right font-bold text-green-800">
-                        ₹{p.modal_price.toLocaleString('en-IN')}
+                        ₹{Number(p.modal_price || 0).toLocaleString('en-IN')}
                       </td>
                       <td className="py-3 text-right hidden sm:table-cell">
                         <span className={p.change_pct >= 0 ? 'text-green-600' : 'text-red-600'}>

@@ -34,12 +34,13 @@ export default function PricesPage() {
   }, []);
 
   useEffect(() => {
-    let data = [...prices];
-    if (cropFilter !== 'All') data = data.filter(p => p.crop === cropFilter);
-    if (marketFilter !== 'All') data = data.filter(p => p.market === marketFilter);
+    const list = Array.isArray(prices) ? prices : [];
+    let data = [...list];
+    if (cropFilter !== 'All') data = data.filter(p => p && p.crop === cropFilter);
+    if (marketFilter !== 'All') data = data.filter(p => p && p.market === marketFilter);
     if (searchTerm) {
       const q = searchTerm.toLowerCase();
-      data = data.filter(p => p.crop.toLowerCase().includes(q) || p.market.toLowerCase().includes(q));
+      data = data.filter(p => p && (p.crop?.toLowerCase().includes(q) || p.market?.toLowerCase().includes(q)));
     }
     setFiltered(data);
   }, [prices, cropFilter, marketFilter, searchTerm]);

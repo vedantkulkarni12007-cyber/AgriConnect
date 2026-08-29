@@ -29,13 +29,12 @@ async function apiCall(endpoint, options = {}) {
   const url = endpoint.startsWith('http') ? endpoint : `${API_BASE}${endpoint}`;
   try {
     const controller = new AbortController();
-    // Reduced from 4000ms to 1500ms — fail fast and fall back to demo data
-    const timeoutId = setTimeout(() => controller.abort(), 1500);
+    const timeoutId = setTimeout(() => controller.abort(), 2000);
 
     const response = await fetch(url, {
       headers: {
         'Content-Type': 'application/json',
-        ...getAuthHeaders(),    // attach Bearer token for protected routes
+        ...getAuthHeaders(),
         ...options.headers,
       },
       signal: controller.signal,
@@ -61,10 +60,12 @@ export async function getPrices(crop = null, market = null) {
     if (crop && crop !== 'All') params.append('crop', crop);
     if (market && market !== 'All') params.append('market', market);
 
-    // Try v1 first, then legacy /api/prices
     const res = (await apiCall(`/api/v1/prices?${params}`)) || (await apiCall(`/api/prices?${params}`));
     if (res && res.success && res.data) {
-      return res;
+      const items = Array.isArray(res.data) ? res.data : (res.data.items || []);
+      if (items.length > 0) {
+        return { success: true, data: items };
+      }
     }
   }
 
@@ -80,7 +81,17 @@ export async function getPriceHistory(crop, market = null, days = 15) {
     const res = (await apiCall(`/api/v1/prices/${crop}/history?market=${market || ''}&days=${days}`)) ||
                 (await apiCall(`/api/prices/${crop}/history?market=${market || ''}&days=${days}`));
     if (res && res.success && res.data) {
-      return res;
+      const raw = Array.isArray(res.data) ? res.data : (res.data.history || res.data.items || []);
+      const history = raw.map(item => ({
+        date: item.date || item.price_date,
+        price: Number(item.price ?? item.modal_price ?? 0),
+        modal_price: Number(item.modal_price ?? item.price ?? 0),
+        min_price: Number(item.min_price ?? 0),
+        max_price: Number(item.max_price ?? 0),
+      }));
+      if (history.length > 0) {
+        return { success: true, data: history };
+      }
     }
   }
 
@@ -129,11 +140,9 @@ export async function getLots(farmerId = null) {
   if (!DEMO_MODE) {
     const params = farmerId ? `?farmer_id=${farmerId}` : '';
     const res = (await apiCall(`/api/v1/lots${params}`)) || (await apiCall(`/api/lots${params}`));
-    if (res && res.success) {
-      // Backend returns paginated shape: { data: { items: [...], total, page } }
-      // Legacy Flask returns: { data: [...] }
-      const data = res.data?.items ?? res.data;
-      if (data) return { success: true, data };
+    if (res && res.success && res.data) {
+      const items = Array.isArray(res.data) ? res.data : (res.data.items || []);
+      if (items.length > 0) return { success: true, data: items };
     }
   }
 
@@ -142,7 +151,6 @@ export async function getLots(farmerId = null) {
 
 export async function createLot(lotData) {
   if (!DEMO_MODE) {
-    // Map frontend field names to backend FastAPI schema
     const payload = {
       crop:            lotData.crop,
       grade:           lotData.grade,
@@ -175,7 +183,10 @@ export async function getMatches(lotData) {
   if (!DEMO_MODE) {
     const res = (await apiCall('/api/v1/matches/refresh', { method: 'POST', body: JSON.stringify({ lot_id: lotData?.id || lotData?.lot_id }) })) ||
                 (await apiCall('/api/match', { method: 'POST', body: JSON.stringify(lotData) }));
-    if (res && res.success && res.data) return res;
+    if (res && res.success && res.data) {
+      const items = Array.isArray(res.data) ? res.data : (res.data.items || []);
+      if (items.length > 0) return { success: true, data: items };
+    }
   }
 
   const buyers = DEMO_BUYERS.filter(b => b.crops.includes(lotData?.crop || 'Onion'));
@@ -200,7 +211,10 @@ export async function getOffers(params = {}) {
     const query = new URLSearchParams(params).toString();
     const res = (await apiCall(`/api/v1/offers${query ? `?${query}` : ''}`)) ||
                 (await apiCall(`/api/offers${query ? `?${query}` : ''}`));
-    if (res && res.success && res.data) return res;
+    if (res && res.success && res.data) {
+      const items = Array.isArray(res.data) ? res.data : (res.data.items || []);
+      if (items.length > 0) return { success: true, data: items };
+    }
   }
 
   return { success: true, data: DEMO_OFFERS };
@@ -233,7 +247,10 @@ export async function getTransactions(params = {}) {
     const query = new URLSearchParams(params).toString();
     const res = (await apiCall(`/api/v1/transactions${query ? `?${query}` : ''}`)) ||
                 (await apiCall(`/api/transactions${query ? `?${query}` : ''}`));
-    if (res && res.success && res.data) return res;
+    if (res && res.success && res.data) {
+      const items = Array.isArray(res.data) ? res.data : (res.data.items || []);
+      if (items.length > 0) return { success: true, data: items };
+    }
   }
 
   return { success: true, data: DEMO_TRANSACTIONS };
@@ -253,7 +270,10 @@ export async function getTransaction(id) {
 export async function getMapMarkers(type = 'all') {
   if (!DEMO_MODE) {
     const res = (await apiCall(`/api/v1/markets`)) || (await apiCall(`/api/map/markers?type=${type}`));
-    if (res && res.success && res.data?.length) return res;
+    if (res && res.success && res.data) {
+      const items = Array.isArray(res.data) ? res.data : (res.data.items || []);
+      if (items.length > 0) return { success: true, data: items };
+    }
   }
 
   const markers = type === 'all' ? DEMO_MARKERS : DEMO_MARKERS.filter(m => m.type === type);
@@ -264,7 +284,10 @@ export async function getMapMarkers(type = 'all') {
 export async function getStorageFacilities() {
   if (!DEMO_MODE) {
     const res = (await apiCall('/api/v1/storage/facilities')) || (await apiCall('/api/storage'));
-    if (res && res.success && res.data) return res;
+    if (res && res.success && res.data) {
+      const items = Array.isArray(res.data) ? res.data : (res.data.items || []);
+      if (items.length > 0) return { success: true, data: items };
+    }
   }
 
   return { success: true, data: DEMO_STORAGE };
@@ -275,7 +298,10 @@ export async function getGrievances(farmerId = null) {
   if (!DEMO_MODE) {
     const res = (await apiCall(`/api/v1/disputes${farmerId ? `?farmer_id=${farmerId}` : ''}`)) ||
                 (await apiCall(`/api/grievances${farmerId ? `?farmer_id=${farmerId}` : ''}`));
-    if (res && res.success && res.data) return res;
+    if (res && res.success && res.data) {
+      const items = Array.isArray(res.data) ? res.data : (res.data.items || []);
+      if (items.length > 0) return { success: true, data: items };
+    }
   }
 
   return { success: true, data: DEMO_GRIEVANCES };

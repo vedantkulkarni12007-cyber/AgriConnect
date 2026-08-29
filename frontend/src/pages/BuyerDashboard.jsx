@@ -41,9 +41,11 @@ export default function BuyerDashboard() {
     load();
   }, []);
 
-  const filtered = lots.filter(l => {
+  const lotList = Array.isArray(lots) ? lots : [];
+  const filtered = lotList.filter(l => {
+    if (!l) return false;
     if (cropFilter !== 'All' && l.crop !== cropFilter) return false;
-    if (searchTerm && !l.crop.toLowerCase().includes(searchTerm.toLowerCase()) &&
+    if (searchTerm && !l.crop?.toLowerCase().includes(searchTerm.toLowerCase()) &&
         !l.location?.toLowerCase().includes(searchTerm.toLowerCase())) return false;
     return l.status === 'active' || l.status === 'matched';
   });
@@ -64,7 +66,7 @@ export default function BuyerDashboard() {
 
       {/* Summary */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <SummaryCard title="Available Lots" value={lots.filter(l => l.status === 'active').length} sub="Ready to purchase" icon={ShoppingBag} color="bg-blue-100 text-blue-700" />
+        <SummaryCard title="Available Lots" value={lotList.filter(l => l?.status === 'active').length} sub="Ready to purchase" icon={ShoppingBag} color="bg-blue-100 text-blue-700" />
         <SummaryCard title="Active Offers" value="3" sub="Awaiting farmer response" icon={FileText} color="bg-amber-100 text-amber-700" />
         <SummaryCard title="Accepted Offers" value="1" sub="In progress" icon={CheckCircle2} color="bg-green-100 text-green-700" />
         <SummaryCard title="Transactions" value="2" sub="Completed" icon={TrendingUp} color="bg-purple-100 text-purple-700" />
