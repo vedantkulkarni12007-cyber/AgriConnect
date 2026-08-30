@@ -8,10 +8,9 @@ import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   Sprout, LayoutDashboard, ShoppingBag, ArrowLeftRight,
   TrendingUp, FileText, AlertCircle, LogOut,
-  Menu, Bell, CheckCheck, MapPin
+  Menu, Bell, CheckCheck
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
-import { useLanguage } from '../hooks/useLanguage';
 import DemoModeBanner from '../components/DemoModeBanner';
 import { getNotifications, markNotificationRead, markAllNotificationsRead } from '../services/api';
 
@@ -40,55 +39,8 @@ const fpoNav = [
   { href: '/grievances',       label: 'Support & Help', icon: AlertCircle },
 ];
 
-export default function DashboardLayout() {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [notifOpen, setNotifOpen] = useState(false);
-  const [notifications, setNotifications] = useState([]);
-  const [loadingNotifs, setLoadingNotifs] = useState(false);
-  const { user, logout } = useAuth();
-  const { t } = useLanguage();
-  const location = useLocation();
-  const navigate = useNavigate();
-
-  const navItems = user?.role === 'buyer' ? buyerNav
-    : user?.role === 'fpo' ? fpoNav
-    : farmerNav;
-
-  const fetchNotifs = async () => {
-    try {
-      const res = await getNotifications();
-      if (res && res.success && Array.isArray(res.data)) {
-        setNotifications(res.data);
-      }
-    } catch {
-      // Ignore network errors in polling
-    }
-  };
-
-  useEffect(() => {
-    fetchNotifs();
-    const interval = setInterval(fetchNotifs, 15000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const unreadCount = notifications.filter(n => !n.is_read).length;
-
-  const handleMarkRead = async (id) => {
-    await markNotificationRead(id);
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
-  };
-
-  const handleMarkAllRead = async () => {
-    await markAllNotificationsRead();
-    setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
-  };
-
-  const handleLogout = () => {
-    logout();
-    navigate('/');
-  };
-
-  const Sidebar = ({ mobile = false }) => (
+function SidebarContent({ user, navItems, location, setSidebarOpen, handleLogout, mobile = false }) {
+  return (
     <div className={`flex flex-col h-full ${mobile ? 'w-full' : 'w-64'}`}>
       {/* Logo */}
       <div className="flex items-center gap-3 px-6 py-5 border-b border-green-700/50">
@@ -154,12 +106,65 @@ export default function DashboardLayout() {
       </div>
     </div>
   );
+}
+
+export default function DashboardLayout() {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const { user, logout } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const navItems = user?.role === 'buyer' ? buyerNav
+    : user?.role === 'fpo' ? fpoNav
+    : farmerNav;
+
+  const fetchNotifs = async () => {
+    try {
+      const res = await getNotifications();
+      if (res && res.success && Array.isArray(res.data)) {
+        setNotifications(res.data);
+      }
+    } catch {
+      // Ignore network errors in polling
+    }
+  };
+
+  useEffect(() => {
+    fetchNotifs();
+    const interval = setInterval(fetchNotifs, 15000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const unreadCount = notifications.filter(n => !n.is_read).length;
+
+  const handleMarkRead = async (id) => {
+    await markNotificationRead(id);
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
+  };
+
+  const handleMarkAllRead = async () => {
+    await markAllNotificationsRead();
+    setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
 
   return (
     <div className="min-h-screen bg-[#FAFAF7] flex">
       {/* Desktop Sidebar */}
       <div className="hidden lg:flex flex-col w-64 bg-gradient-to-b from-green-900 to-green-800 fixed top-0 left-0 h-screen z-30 shadow-xl">
-        <Sidebar />
+        <SidebarContent
+          user={user}
+          navItems={navItems}
+          location={location}
+          setSidebarOpen={setSidebarOpen}
+          handleLogout={handleLogout}
+        />
       </div>
 
       {/* Mobile Sidebar Overlay */}
@@ -174,7 +179,14 @@ export default function DashboardLayout() {
       <div className={`fixed top-0 left-0 h-screen w-72 bg-gradient-to-b from-green-900 to-green-800 z-50 transition-transform duration-300 lg:hidden shadow-2xl ${
         sidebarOpen ? 'translate-x-0' : '-translate-x-full'
       }`}>
-        <Sidebar mobile />
+        <SidebarContent
+          user={user}
+          navItems={navItems}
+          location={location}
+          setSidebarOpen={setSidebarOpen}
+          handleLogout={handleLogout}
+          mobile
+        />
       </div>
 
       {/* Main content area */}
