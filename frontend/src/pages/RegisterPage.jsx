@@ -1,8 +1,4 @@
-// =============================================================
-// Register Page
-// =============================================================
-
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Sprout, AlertCircle } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
@@ -14,13 +10,61 @@ const ROLES = [
 ];
 
 export default function RegisterPage() {
-  const { register } = useAuth();
+  const { register, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     name: '', email: '', phone: '', password: '', role: 'farmer', location: ''
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+
+  const handleGoogleCredentialResponse = async (response) => {
+    if (!response.credential) return;
+    setLoading(true);
+    setError('');
+    const result = await loginWithGoogle(response.credential, formData.role || 'farmer');
+    setLoading(false);
+    if (result.success) {
+      const role = result.user?.role;
+      if (role === 'buyer') navigate('/buyer/dashboard');
+      else if (role === 'fpo') navigate('/fpo/dashboard');
+      else navigate('/farmer/dashboard');
+    } else {
+      setError(result.message || 'Google registration failed.');
+    }
+  };
+
+  useEffect(() => {
+    if (!googleClientId) return;
+    const script = document.createElement('script');
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.defer = true;
+    script.onload = () => {
+      if (window.google?.accounts?.id) {
+        window.google.accounts.id.initialize({
+          client_id: googleClientId,
+          callback: handleGoogleCredentialResponse,
+        });
+        const btnContainer = document.getElementById('googleSignUpBtn');
+        if (btnContainer) {
+          window.google.accounts.id.renderButton(btnContainer, {
+            theme: 'outline',
+            size: 'large',
+            width: 380,
+            text: 'signup_with',
+            shape: 'rectangular',
+          });
+        }
+      }
+    };
+    document.body.appendChild(script);
+    return () => {
+      if (document.body.contains(script)) document.body.removeChild(script);
+    };
+  }, [googleClientId, formData.role]);
 
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -89,6 +133,20 @@ export default function RegisterPage() {
         </div>
 
         <div className="card">
+          {googleClientId && (
+            <div className="mb-5">
+              <div id="googleSignUpBtn" className="flex justify-center" />
+              <div className="relative my-4">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-100" />
+                </div>
+                <div className="relative flex justify-center">
+                  <span className="bg-white px-3 text-xs text-gray-400">or register with mobile / email</span>
+                </div>
+              </div>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Role Selection */}
             <div>

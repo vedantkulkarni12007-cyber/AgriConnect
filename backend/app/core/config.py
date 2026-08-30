@@ -34,6 +34,17 @@ class Settings(BaseSettings):
     s3_access_key: str | None = Field(default=None)
     s3_secret_key: str | None = Field(default=None)
 
+    # Google OAuth & Identity Services
+    google_client_id: str | None = Field(default=None)
+
+    # Transactional Email (Resend / SMTP)
+    resend_api_key: str | None = Field(default=None)
+    email_from: str = Field(default="KrishiLink <noreply@krishilink.in>")
+    smtp_host: str | None = Field(default=None)
+    smtp_port: int = Field(default=587)
+    smtp_user: str | None = Field(default=None)
+    smtp_password: str | None = Field(default=None)
+
     payment_provider: str = Field(default="mock")
 
     log_level: str = Field(default="INFO")
