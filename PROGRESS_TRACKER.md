@@ -13,12 +13,12 @@
 
 | Attribute | Current Value |
 | :--- | :--- |
-| **Active Branch** | `feature/production-rebuild-2.0` |
-| **Latest Commit** | `f60ada5` |
-| **GitHub Actions CI Status** | **ALL GREEN (✓ Backend, ✓ Frontend)** |
-| **Backend Test Suite** | **67 Passed, 0 Failed, 1 Skipped** (`pytest -v`) |
-| **Frontend Production Build** | **Built in 22.3s (0 Errors)** (`npm run build`) |
-| **Linter Status** | **0 Errors** (`ruff check app`, `npm run lint`) |
+| Current Branch | `feature/production-rebuild-2.0` |
+| Current HEAD Commit | `6eb1d68` (`feat(lots): expose GET /lots/{lot_id}/earnings endpoint with integration tests`) |
+| Local Unit/Integration Tests | **68 passing** (0 failing, 1 skipped) |
+| CI Status | 🟢 **100% Green (`✓ 2/2`)** across Frontend and Backend on GitHub Actions |
+| Frontend Status | 0 errors, Vite production bundle builds in ~20s |
+| Legacy Reference Files | `backend/routes/`, `backend/services/`, `flask_app_legacy.py` (Deprecated Flask — preserved for reference only) |
 
 ---
 
