@@ -37,5 +37,5 @@
 
 ## Current Status (2026-08-30)
 - **Branch**: `feature/production-rebuild-2.0`
-- **Tests**: 70 passed (0 failed, 0 skipped) across unit, integration, earnings, FSM, and multi-role E2E journeys
-- **Phases 0–8 Hardened**: Auth, RBAC, Rate Limiting, Idempotency, PostGIS, Matching, Negotiations, Escrow FSM, S3 Evidence, Live Notifications, Customer Support Tickets, Strict CI Gates (no `|| true` bypasses).
+- **Tests**: 73 passed (0 failed, 0 skipped) across unit, integration, earnings, FSM, and multi-role E2E journeys
+- **Phases 0–9 Hardened**: Auth, RBAC, Rate Limiting, Idempotency, PostGIS, Matching N+1 Elimination, Negotiations, Contractual Escrow FSM, S3 Evidence IDOR Protection, Truthful Market Price Trends, Outbox Row Locking, Strict CI Gates.

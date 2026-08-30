@@ -66,9 +66,10 @@ def process_outbox(self):
 
     db = SessionLocal()
     try:
+        # Use row locking with skip_locked to support safe multi-worker concurrency
         pending = db.query(OutboxEvent).filter(
             OutboxEvent.status == "PENDING"
-        ).order_by(OutboxEvent.created_at).limit(100).all()
+        ).order_by(OutboxEvent.created_at).with_for_update(skip_locked=True).limit(100).all()
 
         if not pending:
             return {"processed": 0}

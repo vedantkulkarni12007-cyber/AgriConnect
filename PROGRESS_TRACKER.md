@@ -12,7 +12,7 @@
 ## 📌 Repository State
 
 - **Active Branch**: `feature/production-rebuild-2.0`
-- **Total Passing Automated Tests**: **70 tests passing at 100%** (`backend/tests/`)
+- **Total Passing Automated Tests**: **73 tests passing at 100%** (`backend/tests/`)
 - **Strict Quality Gates**: `python -m ruff check app` (0 errors), `python -m mypy app` (0 errors), `npm run lint` (0 errors), `npm run build` (0 errors), strict CI pipeline (all `|| true` bypasses eliminated).
 - **Frontend Status**: 0 errors, Vite production bundle builds in ~20s
 - **Legacy Reference Files**: `backend/routes/`, `backend/services/`, `flask_app_legacy.py` (Deprecated Flask — preserved for reference only)
@@ -28,6 +28,9 @@
 | **Phase 2** | **Auth Hardening & Rate Limiting** | ✅ Complete | • Added `POST /api/v1/auth/forgot-password` and `POST /api/v1/auth/reset-password` with JWT tokens.<br>• Sliding-window rate limiter (`backend/app/core/rate_limit.py`) with Redis + in-memory fallback.<br>• Synchronous route handlers with threadpool execution for DB sessions. |
 | **Phase 3** | **DB Concurrency & Idempotency** | ✅ Complete | • SQLite & PostGIS dual-compatibility UUID bind processor in `backend/app/core/database.py`.<br>• `Idempotency-Key` headers on `/lots`, `/offers`, `/transactions`.<br>• Row-locking (`with_for_update`) during offer acceptance and lot allocations. |
 | **Phase 4** | **Customer Support & Disputes** | ✅ Complete | • Unified support ticket & dispute lifecycle (`OPEN` → `UNDER_REVIEW` → `RESOLVED` → `CLOSED`).<br>• Category and priority selection, resolution notes, and S3 evidence upload.<br>• Enhanced `frontend/src/pages/GrievancesPage.jsx` with real ticket numbers and tracking. |
+| **Phase 5** | **Live Notifications & Observability** | ✅ Complete | • OpenTelemetry tracing middleware with W3C baggage propagation.<br>• Structured JSON access logs with correlation IDs (`X-Request-ID`).<br>• Comprehensive system health check at `GET /api/v1/admin/system-health`. |
+| **Phase 6** | **Strict Quality Gates & Zero-Bypass CI** | ✅ Complete | • Removed all `|| true` bypasses from GitHub Actions CI.<br>• Enforced `mypy` type checking across all 56 source modules.<br>• Resolved frontend lint warnings in React pages and hooks. |
+| **Phase 7** | **Production Refinement & Hardening** | ✅ Complete | • Contractual gross value calculation (`qty * price_per_unit`).<br>• Reservation ownership verification on transaction creation.<br>• Dispute evidence IDOR protection and file validation (MIME + size).<br>• Eliminated N+1 queries in matching engine.<br>• Truthful market price trend analytics.<br>• Multi-worker outbox concurrency with `with_for_update(skip_locked=True)`. |
 | **Phase 5** | **Event-Driven Notifications** | ✅ Complete | • Centralized `NotificationService` (`backend/app/modules/notifications/service.py`).<br>• Outbox event emission on offers, transactions, dispute updates.<br>• Live notification polling and unread counter badges in `DashboardLayout.jsx`. |
 | **Phase 6** | **Performance & Search Optimization** | ✅ Complete | • Memoized price and marketplace filters (`useMemo`).<br>• Server-side pagination on `/lots`, `/offers`, `/transactions`, `/prices`.<br>• Parameterized PostGIS distance queries. |
 | **Phase 7** | **UX Polish & Warning Cleanup** | ✅ Complete | • Fixed React hook dependencies and initialization order in `OffersPage.jsx`, `PricesPage.jsx`, `MatchesPage.jsx`.<br>• Removed unused imports across `LandingPage.jsx`, `BuyerDashboard.jsx`, `TransactionsPage.jsx`. |

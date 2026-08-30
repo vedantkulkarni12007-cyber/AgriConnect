@@ -114,14 +114,20 @@ def find_candidates(db: Session, lot_id: str):
         return None, []
     rs = get_active_ruleset(db)
     weights = rs.weights or DEFAULT_WEIGHTS
-    # get crop name
     crop_name = lot.crop_name
-    # find buyers with requirements or profiles
-    buyers = db.query(User).filter(User.role=="buyer", User.is_active==True).all()
-    results=[]
+    # find buyers with requirements or profiles (batch loaded to eliminate N+1 queries)
+    buyers = db.query(User).filter(User.role == "buyer", User.is_active == True).all()
+    if not buyers:
+        return lot, []
+
+    buyer_ids = [b.id for b in buyers]
+    profiles_by_user = {p.user_id: p for p in db.query(BuyerProfile).filter(BuyerProfile.user_id.in_(buyer_ids)).all()}
+    reqs_by_buyer = {r.buyer_id: r for r in db.query(BuyerRequirement).filter(BuyerRequirement.buyer_id.in_(buyer_ids), BuyerRequirement.is_active == True).all()}
+
+    results = []
     for buyer in buyers:
-        profile = db.query(BuyerProfile).filter(BuyerProfile.user_id==buyer.id).first()
-        req = db.query(BuyerRequirement).filter(BuyerRequirement.buyer_id==buyer.id, BuyerRequirement.is_active==True).first()
+        profile = profiles_by_user.get(buyer.id)
+        req = reqs_by_buyer.get(buyer.id)
         # crops
         buyer_crops = profile.crops_interested if profile and profile.crops_interested else []
         # if has requirement, use its crop

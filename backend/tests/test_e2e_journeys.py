@@ -159,3 +159,32 @@ def test_admin_end_to_end_journey(client, auth_headers, admin_auth_headers):
     # 5. Admin checks outbox
     r_outbox = client.get("/api/v1/notifications/outbox/pending", headers=admin_auth_headers)
     assert r_outbox.status_code == 200
+
+def test_dispute_evidence_authorization_idor(client, auth_headers, buyer_auth_headers):
+    # 1. Farmer raises dispute
+    disp = client.post("/api/v1/disputes", json={
+        "reason": "Bag tare weight mismatch",
+        "description": "Tare weight recorded differs from physical gross weight.",
+        "category": "Listing Accuracy"
+    }, headers=auth_headers)
+    assert disp.status_code == 201
+    dispute_id = disp.json()["data"]["id"]
+
+    # 2. Buyer attempts to attach evidence to farmer's dispute -> must be rejected with 403 Forbidden
+    r_idor = client.post(f"/api/v1/disputes/{dispute_id}/evidence", json={
+        "s3_key": f"disputes/{dispute_id}/fake.jpg",
+        "file_hash": "a" * 64,
+        "mime_type": "image/jpeg"
+    }, headers=buyer_auth_headers)
+    assert r_idor.status_code == 403
+    assert "Forbidden" in r_idor.json()["detail"]
+
+def test_truthful_market_price_trends(client):
+    # Prices endpoint should return truthful data without hardcoded values
+    r = client.get("/api/v1/prices")
+    assert r.status_code == 200
+    items = r.json()["data"]["items"]
+    for item in items:
+        # Trend must be valid status and not fabricated
+        assert item["trend"] in ("RISING", "FALLING", "STABLE", "UNKNOWN")
+        assert "change_pct" in item

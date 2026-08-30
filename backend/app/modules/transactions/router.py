@@ -8,7 +8,7 @@ from app.core.database import get_db
 from app.core.deps import get_current_user
 from app.core.idempotency import check_idempotency, save_idempotency
 from app.core.rate_limit import rate_limit
-from app.models import AuditLog, Lot, OutboxEvent, Reservation, Transaction, User
+from app.models import AuditLog, Lot, Offer, OutboxEvent, Reservation, Transaction, User
 from app.modules.notifications.service import NotificationService
 
 router = APIRouter(prefix="/transactions", tags=["transactions"])
@@ -24,6 +24,19 @@ ALLOWED_TRANSITIONS = {
     "COMPLETED": [],
     "DISPUTED": ["RESOLVED", "CANCELLED"],
     "CANCELLED": [],
+}
+
+ROLE_TRANSITIONS = {
+    "PAYMENT_PENDING": ["buyer", "admin"],
+    "PAYMENT_CONFIRMED": ["buyer", "admin"],
+    "PROCESSING": ["farmer", "seller", "admin"],
+    "READY_FOR_DISPATCH": ["farmer", "seller", "admin"],
+    "IN_TRANSIT": ["farmer", "seller", "admin"],
+    "DELIVERED": ["buyer", "farmer", "seller", "admin"],
+    "COMPLETED": ["buyer", "admin"],
+    "DISPUTED": ["buyer", "farmer", "seller", "admin"],
+    "RESOLVED": ["admin", "operator"],
+    "CANCELLED": ["buyer", "farmer", "seller", "admin"],
 }
 
 class CreateTxnRequest(BaseModel):
@@ -56,7 +69,21 @@ def create_transaction(data: CreateTxnRequest, request: Request, db: Session = D
     if res.status != "ACTIVE":
         raise HTTPException(status_code=409, detail="Reservation not active or already consumed")
 
+    # Authorize: user must be the reservation's buyer or an admin
+    if user.role.lower() not in ("admin", "operator") and str(res.buyer_id) != str(user.id):
+        raise HTTPException(status_code=403, detail="Forbidden: You cannot create a transaction for another user's reservation")
+
     lot = db.get(Lot, res.lot_id)
+    offer = db.get(Offer, res.offer_id) if res.offer_id else None
+
+    # Derive contractual gross_value from accepted offer or lot price
+    if offer and offer.price_per_unit is not None:
+        gross_val = round(float(res.quantity) * float(offer.price_per_unit), 2)
+    elif lot and lot.asking_price is not None:
+        gross_val = round(float(res.quantity) * float(lot.asking_price), 2)
+    else:
+        gross_val = 0.0
+
     txn = Transaction(
         id=uuid.uuid4(),
         lot_id=res.lot_id,
@@ -65,7 +92,7 @@ def create_transaction(data: CreateTxnRequest, request: Request, db: Session = D
         allocation_id=None,
         offer_id=res.offer_id,
         status="CREATED",
-        gross_value=float(res.quantity) * 10,
+        gross_value=gross_val,
         idempotency_key=idempotency_key
     )
     db.add(txn)
@@ -81,14 +108,14 @@ def create_transaction(data: CreateTxnRequest, request: Request, db: Session = D
             user_id=lot.owner_id,
             type_="order_created",
             title="New Order Confirmed",
-            message=f"Order created for {lot.crop_name} (ID: #{str(txn.id)[:8]}). Awaiting escrow payment.",
+            message=f"Order created for {lot.crop_name} (ID: #{str(txn.id)[:8]}). Value: Rs. {gross_val:,.2f}. Awaiting escrow payment.",
             related_id=txn.id,
             outbox=True
         )
 
     db.commit()
     db.refresh(txn)
-    body = {"success": True, "data": {"id": str(txn.id), "status": txn.status, "lot_id": str(txn.lot_id)}, "message": "Transaction created", "request_id": rid}
+    body = {"success": True, "data": {"id": str(txn.id), "status": txn.status, "lot_id": str(txn.lot_id), "gross_value": float(txn.gross_value) if txn.gross_value else 0.0}, "message": "Transaction created", "request_id": rid}
     save_idempotency(request, db, 201, body)
     return body
 
@@ -125,6 +152,12 @@ def transition(txn_id: str, data: TransitionRequest, request: Request, db: Sessi
     nxt = data.to_status.upper()
     if nxt not in ALLOWED_TRANSITIONS.get(cur, []):
         raise HTTPException(status_code=409, detail=f"Invalid transaction transition: {cur} -> {nxt}")
+
+    # Verify role permissions for this transition
+    allowed_roles = ROLE_TRANSITIONS.get(nxt, ["admin"])
+    user_role = user.role.lower()
+    if user_role not in ("admin", "operator") and user_role not in allowed_roles:
+        raise HTTPException(status_code=403, detail=f"Forbidden: {user.role} is not permitted to transition to {nxt}")
 
     t.status = nxt
     rid = getattr(request.state, "request_id", str(uuid.uuid4()))

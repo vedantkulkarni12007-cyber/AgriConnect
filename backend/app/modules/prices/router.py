@@ -31,8 +31,29 @@ def list_prices(
     q = q.order_by(PriceObservation.price_date.desc())
     total = q.count()
     items = q.offset((page - 1) * limit).limit(limit).all()
-    data = [
-        {
+    data = []
+    for o, crop_name, market_name in items:
+        # Check prior observation for truthful trend comparison
+        prev_obs = (
+            db.query(PriceObservation.modal_price)
+            .filter(
+                PriceObservation.crop_id == o.crop_id,
+                PriceObservation.market_id == o.market_id,
+                PriceObservation.price_date < o.price_date,
+            )
+            .order_by(PriceObservation.price_date.desc())
+            .first()
+        )
+        if prev_obs and prev_obs[0] and float(prev_obs[0]) > 0 and o.modal_price:
+            prev_m = float(prev_obs[0])
+            curr_m = float(o.modal_price)
+            diff_pct = round(((curr_m - prev_m) / prev_m) * 100, 2)
+            trend_val = "RISING" if diff_pct > 0 else ("FALLING" if diff_pct < 0 else "STABLE")
+        else:
+            diff_pct = None
+            trend_val = "UNKNOWN"
+
+        data.append({
             "id": str(o.id),
             "crop_id": str(o.crop_id),
             "crop": crop_name,
@@ -46,11 +67,9 @@ def list_prices(
             "volume": float(o.volume_tonnes) if o.volume_tonnes else 0,
             "quality_status": o.quality_status,
             "source_record_id": o.source_record_id,
-            "change_pct": 2.5,
-            "trend": "RISING" if float(o.modal_price or 0) >= float(o.min_price or 0) else "STABLE",
-        }
-        for o, crop_name, market_name in items
-    ]
+            "change_pct": diff_pct,
+            "trend": trend_val,
+        })
     return {
         "success": True,
         "data": {
