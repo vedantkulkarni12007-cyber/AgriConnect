@@ -5,7 +5,7 @@
 
 import { Link } from 'react-router-dom';
 import {
-  TrendingUp, TrendingDown, Users, ShieldCheck,
+  TrendingUp, Users, ShieldCheck,
   Truck, BarChart2, ArrowRight, CheckCircle2,
   MapPin, Sprout, Star, ArrowUpRight
 } from 'lucide-react';

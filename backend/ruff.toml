@@ -1,0 +1,18 @@
+line-length = 120
+target-version = "py311"
+
+[lint]
+select = ["E", "F", "W", "I"]
+ignore = ["E501", "E712", "E402", "E741", "E701", "E702", "E722"]
+
+exclude = [
+    "app.py",
+    "config.py",
+    "routes",
+    "services",
+    "data",
+    "flask_app_legacy.py",
+]
+
+[lint.isort]
+known-first-party = ["app"]

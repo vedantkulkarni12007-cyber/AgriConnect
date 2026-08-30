@@ -4,7 +4,7 @@
 
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Sprout } from 'lucide-react';
+import { Sprout, AlertCircle } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 
 const ROLES = [
@@ -17,28 +17,59 @@ export default function RegisterPage() {
   const { register } = useAuth();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    name: '', email: '', phone: '', password: '', role: '', location: ''
+    name: '', email: '', phone: '', password: '', role: 'farmer', location: ''
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+    if (error) setError('');
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.role) { setError('Please select your role.'); return; }
+    if (!formData.role) {
+      setError('Please select your role (Farmer, Buyer, or FPO).');
+      return;
+    }
+
+    // Validate phone number format (must be 10 digits)
+    const phoneClean = formData.phone.trim();
+    if (!/^[0-9]{10}$/.test(phoneClean)) {
+      setError('Please enter a valid 10-digit mobile number (e.g. 9876543210).');
+      return;
+    }
+
+    // Validate email format if provided
+    const emailClean = formData.email.trim();
+    if (emailClean && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailClean)) {
+      setError('Please enter a valid email address with a domain (e.g. yourname@gmail.com).');
+      return;
+    }
+
+    if (formData.password.length < 6) {
+      setError('Password must be at least 6 characters long.');
+      return;
+    }
+
     setLoading(true);
     setError('');
-    const result = await register(formData);
+
+    const result = await register({
+      ...formData,
+      phone: phoneClean,
+      email: emailClean || null,
+    });
     setLoading(false);
+
     if (result.success) {
-      if (formData.role === 'farmer') navigate('/farmer/dashboard');
-      else if (formData.role === 'buyer') navigate('/buyer/dashboard');
-      else navigate('/fpo/dashboard');
+      const role = result.user?.role || formData.role;
+      if (role === 'buyer') navigate('/buyer/dashboard');
+      else if (role === 'fpo') navigate('/fpo/dashboard');
+      else navigate('/farmer/dashboard');
     } else {
-      setError(result.message);
+      setError(result.message || 'Registration failed. Please check your details.');
     }
   };
 
@@ -54,7 +85,7 @@ export default function RegisterPage() {
             <span className="text-2xl font-bold text-green-900">KrishiLink</span>
           </div>
           <h1 className="text-2xl font-bold text-gray-900">Create Account</h1>
-          <p className="text-gray-500 text-sm mt-1">Join KrishiLink to access better prices and buyers</p>
+          <p className="text-gray-500 text-sm mt-1">Join KrishiLink to access better prices and verified buyers</p>
         </div>
 
         <div className="card">
@@ -86,34 +117,73 @@ export default function RegisterPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="sm:col-span-2">
                 <label className="label">Full Name *</label>
-                <input className="input" placeholder="Ramesh Patil" value={formData.name}
-                  onChange={(e) => handleChange('name', e.target.value)} required />
+                <input
+                  className="input"
+                  placeholder="e.g. Ramesh Patil"
+                  value={formData.name}
+                  onChange={(e) => handleChange('name', e.target.value)}
+                  required
+                />
               </div>
+
               <div>
                 <label className="label">Phone Number *</label>
-                <input className="input" placeholder="9876543210" type="tel" value={formData.phone}
-                  onChange={(e) => handleChange('phone', e.target.value)} required />
+                <input
+                  className="input"
+                  placeholder="10-digit mobile number"
+                  type="tel"
+                  maxLength={10}
+                  value={formData.phone}
+                  onChange={(e) => handleChange('phone', e.target.value.replace(/\D/g, ''))}
+                  required
+                />
+                <span className="text-[11px] text-gray-400 mt-0.5 block">e.g. 9876543210</span>
               </div>
+
               <div>
-                <label className="label">Email</label>
-                <input className="input" placeholder="name@email.com" type="email" value={formData.email}
-                  onChange={(e) => handleChange('email', e.target.value)} />
+                <label className="label">Email Address</label>
+                <input
+                  className="input"
+                  placeholder="e.g. name@gmail.com"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => handleChange('email', e.target.value)}
+                />
+                <span className="text-[11px] text-gray-400 mt-0.5 block">Include @ and .com</span>
               </div>
+
               <div className="sm:col-span-2">
                 <label className="label">Location (Village / District) *</label>
-                <input className="input" placeholder="Lasalgaon, Nashik" value={formData.location}
-                  onChange={(e) => handleChange('location', e.target.value)} required />
+                <input
+                  className="input"
+                  placeholder="e.g. Ratnagiri or Lasalgaon, Nashik"
+                  value={formData.location}
+                  onChange={(e) => handleChange('location', e.target.value)}
+                  required
+                />
               </div>
+
               <div className="sm:col-span-2">
                 <label className="label">Password *</label>
-                <input className="input" type="password" placeholder="Choose a secure password" value={formData.password}
-                  onChange={(e) => handleChange('password', e.target.value)} required minLength={6} />
+                <input
+                  className="input"
+                  type="password"
+                  placeholder="Minimum 6 characters"
+                  value={formData.password}
+                  onChange={(e) => handleChange('password', e.target.value)}
+                  required
+                  minLength={6}
+                />
               </div>
             </div>
 
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl">
-                {error}
+              <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl flex items-start gap-2">
+                <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-semibold text-red-800">Registration Notice</p>
+                  <p className="text-red-700 mt-0.5">{error}</p>
+                </div>
               </div>
             )}
 
@@ -129,7 +199,7 @@ export default function RegisterPage() {
         </div>
 
         <p className="text-center text-xs text-gray-400 mt-4">
-          Demo mode: Registration creates a local account. Connect Supabase for real auth.
+          Your account credentials will be saved to the database.
         </p>
       </div>
     </div>

@@ -6,7 +6,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  IndianRupee, Package, FileText, Wallet,
+  Package, FileText, Wallet,
   TrendingUp, TrendingDown, Minus, MapPin, Star,
   ArrowUpRight, Warehouse, Clock, CheckCircle2
 } from 'lucide-react';
@@ -17,8 +17,8 @@ import { useAuth } from '../hooks/useAuth';
 import { useLanguage } from '../hooks/useLanguage';
 import { getCropImage } from '../utils/cropImages';
 import { getPrices, getTrend, getPriceHistory } from '../services/api';
-import { DEMO_BUYERS, DEMO_STORAGE, DEMO_LOTS } from '../data/demoData';
-import { TrendBadge, VerifiedBadge, StatusBadge } from '../components/Badges';
+import { DEMO_BUYERS, DEMO_STORAGE } from '../data/demoData';
+import { TrendBadge, VerifiedBadge } from '../components/Badges';
 import { LoadingState } from '../components/States';
 
 // ---- Summary Card (secondary level) ----
@@ -39,9 +39,10 @@ function SummaryCard({ title, value, sub, icon: Icon, color, accent }) {
 
 // ---- Best Price Hero Card (primary level) ----
 function BestPriceHeroCard({ trendData, prices, selectedCrop }) {
-  const best = prices
-    .filter(p => p.crop === selectedCrop)
-    .sort((a, b) => b.modal_price - a.modal_price)[0];
+  const priceList = Array.isArray(prices) ? prices : [];
+  const best = priceList
+    .filter(p => p && p.crop === selectedCrop)
+    .sort((a, b) => (b.modal_price || 0) - (a.modal_price || 0))[0];
 
   if (!best) return null;
 
@@ -115,9 +116,9 @@ function BestPriceHeroCard({ trendData, prices, selectedCrop }) {
 
 
 // ---- Trend Info Box ----
-function TrendInfoBox({ trendData, crop }) {
+function TrendInfoBox({ trendData }) {
   if (!trendData) return null;
-  const { trend, percentage_change, explanation } = trendData;
+  const { trend, explanation } = trendData;
 
   const bg = trend === 'RISING' ? 'bg-green-50 border-green-200'
     : trend === 'FALLING' ? 'bg-red-50 border-red-200'
@@ -158,15 +159,20 @@ export default function FarmerDashboard() {
   useEffect(() => {
     async function loadData() {
       setLoading(true);
-      const [priceRes, trendRes, histRes] = await Promise.all([
-        getPrices(),
-        getTrend(selectedCrop, 'Lasalgaon'),
-        getPriceHistory(selectedCrop, 'Lasalgaon', 14),
-      ]);
-      if (priceRes.success) setPrices(priceRes.data);
-      if (trendRes.success) setTrendData(trendRes.data);
-      if (histRes.success) setPriceHistory(histRes.data);
-      setLoading(false);
+      try {
+        const [priceRes, trendRes, histRes] = await Promise.all([
+          getPrices(),
+          getTrend(selectedCrop, 'Lasalgaon'),
+          getPriceHistory(selectedCrop, 'Lasalgaon', 14),
+        ]);
+        if (priceRes && priceRes.success && priceRes.data) setPrices(priceRes.data);
+        if (trendRes && trendRes.success && trendRes.data) setTrendData(trendRes.data);
+        if (histRes && histRes.success && histRes.data) setPriceHistory(histRes.data);
+      } catch (err) {
+        console.warn('Dashboard loadData fallback:', err);
+      } finally {
+        setLoading(false);
+      }
     }
     loadData();
   }, [selectedCrop]);
@@ -194,7 +200,7 @@ export default function FarmerDashboard() {
         <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-6">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold mb-2">
-              {greeting}, {user?.name?.split(' ')[0]} 👋
+              {greeting}, {(user?.name || user?.full_name || 'Farmer').split(' ')[0]} 👋
             </h1>
             <div className="flex items-center gap-4 text-green-100 text-sm">
               <span className="flex items-center gap-1.5 bg-white/10 px-3 py-1 rounded-full backdrop-blur-sm">
@@ -345,24 +351,24 @@ export default function FarmerDashboard() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {prices.slice(0, 8).map(p => (
-                    <tr key={p.id} className="hover:bg-green-50/30 transition-colors">
+                  {(Array.isArray(prices) ? prices : []).slice(0, 8).map(p => (
+                    <tr key={p.id || `${p.crop}-${p.market}`} className="hover:bg-green-50/30 transition-colors">
                       <td className="py-3 font-semibold text-gray-800 flex items-center gap-2.5">
                         <img
                           src={getCropImage(p.crop)}
-                          alt={p.crop}
+                          alt={p.crop || 'Crop'}
                           className="w-7 h-7 rounded-md object-cover flex-shrink-0 border border-gray-100 shadow-2xs"
                         />
-                        <span>{p.crop}</span>
+                        <span>{p.crop || 'Crop'}</span>
                       </td>
                       <td className="py-3 text-gray-600">
                         <span className="flex items-center gap-1">
                           <MapPin className="w-3 h-3 text-gray-400" />
-                          {p.market}
+                          {p.market || 'APMC'}
                         </span>
                       </td>
                       <td className="py-3 text-right font-bold text-green-800">
-                        ₹{p.modal_price.toLocaleString('en-IN')}
+                        ₹{Number(p.modal_price || 0).toLocaleString('en-IN')}
                       </td>
                       <td className="py-3 text-right hidden sm:table-cell">
                         <span className={p.change_pct >= 0 ? 'text-green-600' : 'text-red-600'}>

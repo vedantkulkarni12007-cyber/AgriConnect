@@ -10,11 +10,9 @@ export default defineConfig({
   ],
   server: {
     port: 5173,
-    // This proxies /api/* requests to the Flask backend during development
-    // So you don't need to worry about CORS during local development
     proxy: {
       '/api': {
-        target: 'http://localhost:5000',
+        target: 'http://localhost:8001',
         changeOrigin: true,
       }
     }

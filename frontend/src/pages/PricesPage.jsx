@@ -3,11 +3,11 @@
 // Full price comparison with filters and charts
 // =============================================================
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Search, Filter, MapPin } from 'lucide-react';
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  BarChart, Bar, Legend
+  BarChart, Bar
 } from 'recharts';
 import { getPrices, getPriceHistory } from '../services/api';
 import { TrendBadge } from '../components/Badges';
@@ -19,7 +19,6 @@ const MARKETS = ['All', 'Nashik', 'Lasalgaon', 'Pune', 'Ahmednagar', 'Solapur', 
 
 export default function PricesPage() {
   const [prices, setPrices] = useState([]);
-  const [filtered, setFiltered] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [cropFilter, setCropFilter] = useState('All');
@@ -34,17 +33,6 @@ export default function PricesPage() {
   }, []);
 
   useEffect(() => {
-    let data = [...prices];
-    if (cropFilter !== 'All') data = data.filter(p => p.crop === cropFilter);
-    if (marketFilter !== 'All') data = data.filter(p => p.market === marketFilter);
-    if (searchTerm) {
-      const q = searchTerm.toLowerCase();
-      data = data.filter(p => p.crop.toLowerCase().includes(q) || p.market.toLowerCase().includes(q));
-    }
-    setFiltered(data);
-  }, [prices, cropFilter, marketFilter, searchTerm]);
-
-  useEffect(() => {
     loadHistory(selectedCrop);
   }, [selectedCrop]);
 
@@ -53,43 +41,68 @@ export default function PricesPage() {
     setError(null);
     try {
       const res = await getPrices();
-      if (res.success) {
+      if (res && res.success && Array.isArray(res.data)) {
         setPrices(res.data);
-        setFiltered(res.data);
-      } else {
-        setError('Could not load price data.');
+      } else if (res && !res.success) {
+        setError(res.error || 'Could not load price data.');
       }
     } catch {
       setError('Price data is temporarily unavailable. Please try again.');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }
 
   async function loadHistory(crop) {
     setHistLoading(true);
-    const res = await getPriceHistory(crop, null, 15);
-    if (res.success) setPriceHistory(res.data);
-    setHistLoading(false);
+    try {
+      const res = await getPriceHistory(crop, null, 15);
+      if (res && res.success && Array.isArray(res.data)) {
+        setPriceHistory(res.data);
+      }
+    } catch {
+      // safe fallback
+    } finally {
+      setHistLoading(false);
+    }
   }
 
+  const filtered = useMemo(() => {
+    const list = Array.isArray(prices) ? prices : [];
+    let data = [...list];
+    if (cropFilter !== 'All') data = data.filter(p => p && p.crop === cropFilter);
+    if (marketFilter !== 'All') data = data.filter(p => p && p.market === marketFilter);
+    if (searchTerm) {
+      const q = searchTerm.toLowerCase();
+      data = data.filter(p => p && (p.crop?.toLowerCase().includes(q) || p.market?.toLowerCase().includes(q)));
+    }
+    return data;
+  }, [prices, cropFilter, marketFilter, searchTerm]);
+
   // Best price for the selected crop
-  const bestPrice = prices
-    .filter(p => p.crop === selectedCrop)
-    .sort((a, b) => b.modal_price - a.modal_price)[0];
+  const bestPrice = useMemo(() => {
+    return prices
+      .filter(p => p && p.crop === selectedCrop)
+      .sort((a, b) => (Number(b.modal_price) || 0) - (Number(a.modal_price) || 0))[0];
+  }, [prices, selectedCrop]);
 
   // Market comparison data for bar chart
-  const marketComparison = prices
-    .filter(p => p.crop === selectedCrop)
-    .map(p => ({ market: p.market, price: p.modal_price }));
+  const marketComparison = useMemo(() => {
+    return prices
+      .filter(p => p && p.crop === selectedCrop)
+      .map(p => ({ market: p.market, price: Number(p.modal_price) || 0 }));
+  }, [prices, selectedCrop]);
 
   // Best price overall for highlight in table
-  const maxPriceValue = filtered.length > 0 ? Math.max(...filtered.map(p => p.modal_price)) : 0;
+  const maxPriceValue = useMemo(() => {
+    return filtered.length > 0 ? Math.max(...filtered.map(p => Number(p.modal_price) || 0)) : 0;
+  }, [filtered]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
       {/* Header */}
       <div>
-        <p className="section-label">Live Demo Data</p>
+        <p className="section-label">Mandi Live Insights</p>
         <h1 className="text-2xl font-bold text-gray-900">Today's Market Prices</h1>
         <p className="text-gray-500 text-sm mt-1">
           Current modal prices from mandis across Maharashtra
@@ -167,10 +180,10 @@ export default function PricesPage() {
             <div className="h-52">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={priceHistory}>
-                  <XAxis dataKey="date" tick={{ fontSize: 10 }} tickFormatter={(d) => d.slice(5)} />
-                  <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => `₹${v.toLocaleString('en-IN')}`} width={70} />
+                  <XAxis dataKey="date" tick={{ fontSize: 10 }} tickFormatter={(d) => String(d || '').slice(5)} />
+                  <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => `₹${Number(v || 0).toLocaleString('en-IN')}`} width={70} />
                   <Tooltip
-                    formatter={(v) => [`₹${v.toLocaleString('en-IN')}`, 'Price']}
+                    formatter={(v) => [`₹${Number(v || 0).toLocaleString('en-IN')}`, 'Price']}
                     contentStyle={{ borderRadius: '12px', fontSize: '13px' }}
                   />
                   <Line type="monotone" dataKey="price" stroke="#2D6A4F" strokeWidth={2.5} dot={false} />
@@ -192,7 +205,7 @@ export default function PricesPage() {
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-xl font-bold text-green-800 tracking-tight">₹{bestPrice.modal_price.toLocaleString('en-IN')}</p>
+                <p className="text-xl font-bold text-green-800 tracking-tight">₹{Number(bestPrice.modal_price || 0).toLocaleString('en-IN')}</p>
                 <p className="text-xs text-gray-400">per quintal</p>
               </div>
             </div>
@@ -211,9 +224,9 @@ export default function PricesPage() {
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={marketComparison} barSize={36}>
                   <XAxis dataKey="market" tick={{ fontSize: 11 }} />
-                  <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => `₹${v.toLocaleString('en-IN')}`} width={70} />
+                  <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => `₹${Number(v || 0).toLocaleString('en-IN')}`} width={70} />
                   <Tooltip
-                    formatter={(v) => [`₹${v.toLocaleString('en-IN')}`, 'Price']}
+                    formatter={(v) => [`₹${Number(v || 0).toLocaleString('en-IN')}`, 'Price']}
                     contentStyle={{ borderRadius: '12px', fontSize: '13px' }}
                   />
                   <Bar dataKey="price" fill="#2D6A4F" radius={[6, 6, 0, 0]} />
@@ -254,7 +267,8 @@ export default function PricesPage() {
               </thead>
               <tbody className="divide-y divide-gray-50 bg-white">
                 {filtered.map(p => {
-                  const isBest = p.modal_price === maxPriceValue && filtered.length > 1;
+                  const modal = Number(p.modal_price) || 0;
+                  const isBest = modal === maxPriceValue && filtered.length > 1;
                   return (
                     <tr key={p.id} className={`transition-colors ${isBest ? 'bg-green-50/50' : 'hover:bg-green-50/30'}`}>
                       <td className="px-5 py-3.5 font-semibold text-gray-800">
@@ -275,12 +289,12 @@ export default function PricesPage() {
                           {p.market}
                         </span>
                       </td>
-                      <td className="px-5 py-3.5 text-right text-gray-500">₹{p.min_price.toLocaleString('en-IN')}</td>
+                      <td className="px-5 py-3.5 text-right text-gray-500">₹{Number(p.min_price || 0).toLocaleString('en-IN')}</td>
                       <td className={`px-5 py-3.5 text-right font-bold ${isBest ? 'text-green-700 text-lg' : 'text-gray-900'}`}>
-                        ₹{p.modal_price.toLocaleString('en-IN')}
+                        ₹{modal.toLocaleString('en-IN')}
                       </td>
-                      <td className="px-5 py-3.5 text-right text-gray-500">₹{p.max_price.toLocaleString('en-IN')}</td>
-                      <td className="px-5 py-3.5 text-right text-gray-500 hidden md:table-cell">{p.volume}</td>
+                      <td className="px-5 py-3.5 text-right text-gray-500">₹{Number(p.max_price || 0).toLocaleString('en-IN')}</td>
+                      <td className="px-5 py-3.5 text-right text-gray-500 hidden md:table-cell">{p.volume || '—'}</td>
                       <td className="px-5 py-3.5 text-center">
                         <TrendBadge trend={p.trend} change={p.change_pct} />
                       </td>
@@ -299,7 +313,7 @@ export default function PricesPage() {
       )}
 
       <p className="text-xs text-gray-400 text-center">
-        * All prices are in ₹ per quintal. Trend signals use 7-day arithmetic — not AI prediction. Source: Demo Data.
+        * All prices are in ₹ per quintal. Trend signals calculated using rolling 7-day arithmetic modal price changes.
       </p>
     </div>
   );

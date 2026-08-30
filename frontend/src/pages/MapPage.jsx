@@ -113,7 +113,7 @@ export default function MapPage() {
           document.head.appendChild(link);
         }
         setMapReady(true);
-      } catch (e) {
+      } catch {
         setMapError(true);
       }
     }
