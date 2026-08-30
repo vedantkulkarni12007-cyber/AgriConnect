@@ -59,3 +59,48 @@ def test_create_lot_duplicate_idempotency(client, auth_headers):
     }, headers=headers)
     assert r2.status_code == 201
     assert r.json()["data"]["public_id"] == r2.json()["data"]["public_id"]
+
+def test_get_lot_earnings_no_offers(client, auth_headers):
+    # Create lot
+    r = client.post("/api/v1/lots", json={
+        "crop": "Wheat", "grade": "A", "quantity": 100.0,
+        "location_text": "Nashik", "district": "Nashik",
+        "market_reference_price": 2800.0
+    }, headers=auth_headers)
+    assert r.status_code == 201
+    lot_id = r.json()["data"]["id"]
+
+    # Request earnings without offers -> 400 with message
+    r2 = client.get(f"/api/v1/lots/{lot_id}/earnings", headers=auth_headers)
+    assert r2.status_code == 400
+    assert "Lot has no buyer offers" in r2.json()["detail"]
+
+def test_get_lot_earnings_with_offer(client, auth_headers):
+    # Create lot with market reference price
+    r = client.post("/api/v1/lots", json={
+        "crop": "Wheat", "grade": "A", "quantity": 50.0,
+        "location_text": "Nashik", "district": "Nashik",
+        "market_reference_price": 2000.0
+    }, headers=auth_headers)
+    assert r.status_code == 201
+    lot_id = r.json()["data"]["id"]
+
+    # Login as buyer and make offer
+    buyer_login = client.post("/api/v1/auth/login", json={"email": "buyer@demo.com", "password": "demo123!"})
+    assert buyer_login.status_code == 200
+    buyer_headers = {"Authorization": f"Bearer {buyer_login.json()['data']['access_token']}"}
+
+    offer_resp = client.post("/api/v1/offers", json={
+        "lot_id": lot_id,
+        "quantity": 50.0,
+        "price_per_unit": 2400.0
+    }, headers=buyer_headers)
+    assert offer_resp.status_code == 201
+
+    # Farmer requests earnings
+    earnings_resp = client.get(f"/api/v1/lots/{lot_id}/earnings", headers=auth_headers)
+    assert earnings_resp.status_code == 200
+    earnings_data = earnings_resp.json()["data"]
+    assert earnings_data["market_value"] == 100000.0  # 50 * 2000
+    assert earnings_data["best_offer_value"] == 120000.0  # 50 * 2400
+    assert earnings_data["potential_additional_earnings"] == 20000.0  # 120000 - 100000

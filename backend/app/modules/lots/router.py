@@ -9,6 +9,7 @@ from app.core.database import get_db
 from app.core.deps import require_role
 from app.core.idempotency import check_idempotency, save_idempotency
 from app.models import Crop, Lot, User
+from app.modules.lots.service import calculate_farmer_earnings
 
 router = APIRouter(prefix="/lots", tags=["lots"])
 
@@ -115,3 +116,21 @@ def public_lot(public_id: str, request: Request, db: Session = Depends(get_db)):
     if not lot:
         raise HTTPException(status_code=404, detail="Lot not found")
     return {"success": True, "data": {"public_id": lot.public_id, "crop": lot.crop_name, "grade": lot.grade, "quantity": float(lot.quantity), "unit": lot.unit, "status": lot.status, "district": lot.district, "created_at": lot.created_at.isoformat() if lot.created_at else None}, "message": "Public lot", "request_id": getattr(request.state, "request_id", None)}
+
+@router.get("/{lot_id}/earnings", response_model=dict)
+def get_lot_earnings(
+    lot_id: str,
+    request: Request,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_role("farmer", "fpo", "admin")),
+):
+    try:
+        data = calculate_farmer_earnings(db, lot_id, str(user.id))
+        return {
+            "success": True,
+            "data": data,
+            "message": "Earnings calculated successfully",
+            "request_id": getattr(request.state, "request_id", None),
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
