@@ -17,9 +17,15 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.execute('CREATE INDEX IF NOT EXISTS ix_lots_public_id_status ON lots USING btree (public_id, status)')
-    op.execute('CREATE INDEX IF NOT EXISTS ix_price_obs_date_brin ON price_observations USING brin (price_date)')
-    op.execute('CREATE INDEX IF NOT EXISTS ix_notifications_user_read ON notifications USING btree (user_id, is_read)')
+    bind = op.get_bind()
+    if bind.dialect.name == "postgresql":
+        op.execute('CREATE INDEX IF NOT EXISTS ix_lots_public_id_status ON lots USING btree (public_id, status)')
+        op.execute('CREATE INDEX IF NOT EXISTS ix_price_obs_date_brin ON price_observations USING brin (price_date)')
+        op.execute('CREATE INDEX IF NOT EXISTS ix_notifications_user_read ON notifications USING btree (user_id, is_read)')
+    else:
+        op.execute('CREATE INDEX IF NOT EXISTS ix_lots_public_id_status ON lots (public_id, status)')
+        op.execute('CREATE INDEX IF NOT EXISTS ix_price_obs_date_brin ON price_observations (price_date)')
+        op.execute('CREATE INDEX IF NOT EXISTS ix_notifications_user_read ON notifications (user_id, is_read)')
 
 
 def downgrade() -> None:

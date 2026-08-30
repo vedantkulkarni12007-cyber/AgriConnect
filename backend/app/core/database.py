@@ -102,7 +102,7 @@ def create_db_engine():
         Base.metadata.create_all(eng)
         return eng
 
-    # Try PostgreSQL, fallback to local SQLite if PostgreSQL is not running
+    # Try PostgreSQL, fallback to local SQLite only in local development/test environments
     try:
         eng = create_engine(
             db_url,
@@ -114,9 +114,19 @@ def create_db_engine():
             conn.execute(text("SELECT 1"))
         return eng
     except Exception as e:
+        if settings.env in ("production", "staging"):
+            logging.getLogger(__name__).critical(
+                "PostgreSQL database connection failed in %s environment: %s",
+                settings.env,
+                e,
+            )
+            raise RuntimeError(
+                f"Production database connection failure ({settings.env}): {e}. Refusing to fall back to SQLite."
+            ) from e
+
         base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         sqlite_path = os.path.join(base_dir, "krishilink.db")
-        # Log fallback warning
+        # Log fallback warning for development only
         logging.getLogger(__name__).warning(
             "PostgreSQL unavailable (%s). Falling back to SQLite at %s for local development.",
             e,

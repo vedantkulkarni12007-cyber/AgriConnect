@@ -85,15 +85,11 @@ export function AuthProvider({ children }) {
       if (err.name === 'AbortError') {
         return { success: false, message: 'Server timed out. Is the backend running?' };
       }
-      // Network error — try demo fallback so the UI still works offline
-      console.warn('[useAuth] Login API unreachable, trying demo fallback:', err.message);
-      const demoUser = Object.values(DEMO_USERS).find(u => u.email === email);
-      if (demoUser) {
-        setUser(demoUser);
-        localStorage.setItem('krishilink_user', JSON.stringify(demoUser));
-        return { success: true, user: demoUser };
-      }
-      return { success: false, message: 'Could not reach server. Use a demo login below.' };
+      console.warn('[useAuth] Login API unreachable:', err.message);
+      return {
+        success: false,
+        message: 'Could not connect to authentication server. Please check your connection and try again.',
+      };
     }
   };
 
@@ -150,22 +146,11 @@ export function AuthProvider({ children }) {
       if (err.name === 'AbortError') {
         return { success: false, message: 'Server timed out. Is the backend running?' };
       }
-      // Network error — create a local-only session so the UI still works
-      console.warn('[useAuth] Register API unreachable, using local account:', err.message);
-      const mockUser = {
-        id: `local-${Date.now()}`,
-        name: userData.name,
-        full_name: userData.name,
-        role: userData.role || 'farmer',
-        location: userData.location || 'Maharashtra',
-        email: userData.email,
-        phone: userData.phone || null,
-        is_verified: false,
-        is_active: true,
+      console.warn('[useAuth] Register API unreachable:', err.message);
+      return {
+        success: false,
+        message: 'Could not connect to registration server. Please check your connection and try again.',
       };
-      setUser(mockUser);
-      localStorage.setItem('krishilink_user', JSON.stringify(mockUser));
-      return { success: true, user: mockUser };
     }
   };
 
