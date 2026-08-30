@@ -1,4 +1,5 @@
 import inspect
+import logging
 import os
 import time
 from collections import defaultdict
@@ -11,11 +12,14 @@ from redis.exceptions import RedisError
 
 from app.core.config import settings
 
+logger = logging.getLogger("krishilink.rate_limit")
+
 redis_client: Redis | None = None
 _in_memory_buckets: dict[str, list[float]] = defaultdict(list)
+_redis_logged_degradation = False
 
 def get_redis() -> Redis | None:
-    global redis_client
+    global redis_client, _redis_logged_degradation
     if redis_client is None:
         try:
             from urllib.parse import urlparse
@@ -31,7 +35,17 @@ def get_redis() -> Redis | None:
             )
             r.ping()
             redis_client = r
-        except Exception:
+            if _redis_logged_degradation:
+                logger.info("Redis connection restored. Distributed rate limiting active.")
+                _redis_logged_degradation = False
+        except Exception as exc:
+            if not _redis_logged_degradation:
+                logger.warning(
+                    "Redis unavailable (%s: %s). Rate limiter degraded to node-local in-memory buckets.",
+                    type(exc).__name__,
+                    exc,
+                )
+                _redis_logged_degradation = True
             redis_client = None
     return redis_client
 
@@ -45,6 +59,7 @@ def _extract_request(args, kwargs):
     return None
 
 def _check_limit(request, max_requests: int, window_seconds: int, key_prefix: str):
+    global _redis_logged_degradation
     client_ip = getattr(getattr(request, "client", None), "host", "unknown")
     if client_ip == "testclient" and "PYTEST_CURRENT_TEST" in os.environ:
         return
@@ -67,8 +82,13 @@ def _check_limit(request, max_requests: int, window_seconds: int, key_prefix: st
                     detail=f"Rate limit exceeded: maximum {max_requests} requests per {window_seconds}s.",
                 )
             return
-        except RedisError:
-            pass
+        except RedisError as redis_err:
+            if not _redis_logged_degradation:
+                logger.warning(
+                    "Redis error during rate check (%s). Falling back to in-memory window.",
+                    redis_err,
+                )
+                _redis_logged_degradation = True
 
     # In-memory sliding window fallback
     timestamps = [t for t in _in_memory_buckets[key] if t > now - window_seconds]
