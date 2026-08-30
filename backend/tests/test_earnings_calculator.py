@@ -2,15 +2,17 @@ import pytest
 import uuid
 from decimal import Decimal
 from app.modules.lots.service import calculate_farmer_earnings
-from app.models import Lot, Offer
+from app.models import Lot, Offer, User
 
 @pytest.fixture
-def mock_farmer_id():
-    return str(uuid.uuid4())
+def mock_farmer_id(db_session, ensure_test_users):
+    farmer = db_session.query(User).filter(User.email == "ramesh@demo.com").first()
+    return str(farmer.id)
 
 @pytest.fixture
-def mock_buyer_id():
-    return str(uuid.uuid4())
+def mock_buyer_id(db_session, ensure_test_users):
+    buyer = db_session.query(User).filter(User.email == "buyer@demo.com").first()
+    return str(buyer.id)
 
 def test_calculate_farmer_earnings_success(db_session, mock_farmer_id, mock_buyer_id):
     lot_id = uuid.uuid4()
