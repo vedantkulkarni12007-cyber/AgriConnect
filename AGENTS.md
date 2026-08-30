@@ -35,7 +35,7 @@
 2. `gh --repo vedantkulkarni12007-cyber/KrishiLink run list --limit 3` — confirm workflow triggered
 3. `gh --repo vedantkulkarni12007-cyber/KrishiLink run view <id>` — wait for `✓` on both jobs before notifying
 
-## Current Status (2026-08-29)
-- **Branch**: `feature/production-rebuild-2.0` (HEAD `832a2ae`, CI 100% green)
-- **Tests**: 60 passed (0 failed, 1 skipped) across unit, integration, and multi-role E2E journeys
+## Current Status (2026-08-30)
+- **Branch**: `feature/production-rebuild-2.0` (HEAD `f60ada5`, CI 100% green)
+- **Tests**: 67 passed (0 failed, 1 skipped) across unit, integration, and multi-role E2E journeys
 - **Phases 0–10 Complete**: Auth, RBAC, Rate Limiting, PostGIS, Matching, Negotiations, Escrow FSM, S3 Evidence, Live Notifications, Customer Support Tickets, and CI/CD Automation.

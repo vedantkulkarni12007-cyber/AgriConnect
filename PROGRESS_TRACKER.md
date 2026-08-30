@@ -14,7 +14,7 @@
 | Attribute | Current Value |
 | :--- | :--- |
 | **Active Branch** | `feature/production-rebuild-2.0` |
-| **Latest Commit** | `7ba650b` |
+| **Latest Commit** | `f60ada5` |
 | **GitHub Actions CI Status** | **ALL GREEN (✓ Backend, ✓ Frontend)** |
 | **Backend Test Suite** | **67 Passed, 0 Failed, 1 Skipped** (`pytest -v`) |
 | **Frontend Production Build** | **Built in 22.3s (0 Errors)** (`npm run build`) |
