@@ -15,7 +15,7 @@ from app.models import (
 
 JSON_FILE = (
     Path(__file__).resolve().parents[3]
-    / "mandi_100.json"
+    / "mandi_final_100.json"
 )
 
 
