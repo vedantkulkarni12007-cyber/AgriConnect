@@ -12,6 +12,15 @@ def client():
     with TestClient(app) as c:
         yield c
 
+@pytest.fixture
+def db_session():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
 @pytest.fixture(scope="session", autouse=True)
 def ensure_test_users():
     db = SessionLocal()

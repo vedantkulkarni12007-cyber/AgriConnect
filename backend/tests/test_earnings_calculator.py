@@ -16,7 +16,7 @@ def test_calculate_farmer_earnings_success(db_session, mock_farmer_id, mock_buye
     lot_id = uuid.uuid4()
     lot = Lot(
         id=lot_id,
-        public_id="KL-LOT-TEST1",
+        public_id=f"KL-LOT-{uuid.uuid4().hex[:10]}",
         owner_id=uuid.UUID(mock_farmer_id),
         crop_name="Wheat",
         grade="A",
@@ -55,7 +55,7 @@ def test_calculate_farmer_earnings_no_offer(db_session, mock_farmer_id):
     lot_id = uuid.uuid4()
     lot = Lot(
         id=lot_id,
-        public_id="KL-LOT-TEST2",
+        public_id=f"KL-LOT-{uuid.uuid4().hex[:10]}",
         owner_id=uuid.UUID(mock_farmer_id),
         crop_name="Wheat",
         grade="A",
@@ -73,7 +73,7 @@ def test_calculate_farmer_earnings_missing_market_price(db_session, mock_farmer_
     lot_id = uuid.uuid4()
     lot = Lot(
         id=lot_id,
-        public_id="KL-LOT-TEST3",
+        public_id=f"KL-LOT-{uuid.uuid4().hex[:10]}",
         owner_id=uuid.UUID(mock_farmer_id),
         crop_name="Wheat",
         grade="A",
@@ -91,17 +91,18 @@ def test_calculate_farmer_earnings_invalid_quantity(db_session, mock_farmer_id):
     lot_id = uuid.uuid4()
     lot = Lot(
         id=lot_id,
-        public_id="KL-LOT-TEST4",
+        public_id=f"KL-LOT-{uuid.uuid4().hex[:10]}",
         owner_id=uuid.UUID(mock_farmer_id),
         crop_name="Wheat",
         grade="A",
-        quantity=Decimal("0"),
+        quantity=Decimal("100"),
         market_reference_price=Decimal("2800"),
         location_text="Test Loc"
     )
     db_session.add(lot)
     db_session.commit()
     
+    lot.quantity = Decimal("0")
     with pytest.raises(ValueError, match="Invalid/zero quantity"):
         calculate_farmer_earnings(db_session, str(lot_id), mock_farmer_id)
         
@@ -109,7 +110,7 @@ def test_calculate_farmer_earnings_wrong_farmer(db_session, mock_farmer_id):
     lot_id = uuid.uuid4()
     lot = Lot(
         id=lot_id,
-        public_id="KL-LOT-TEST5",
+        public_id=f"KL-LOT-{uuid.uuid4().hex[:10]}",
         owner_id=uuid.UUID(mock_farmer_id),
         crop_name="Wheat",
         grade="A",
@@ -132,7 +133,7 @@ def test_calculate_farmer_earnings_invalid_price(db_session, mock_farmer_id):
     lot_id = uuid.uuid4()
     lot = Lot(
         id=lot_id,
-        public_id="KL-LOT-TEST6",
+        public_id=f"KL-LOT-{uuid.uuid4().hex[:10]}",
         owner_id=uuid.UUID(mock_farmer_id),
         crop_name="Wheat",
         grade="A",
