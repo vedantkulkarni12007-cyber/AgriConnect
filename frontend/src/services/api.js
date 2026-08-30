@@ -442,12 +442,3 @@ export async function checkHealth() {
   if (res && res.success) return res;
   return { success: false, mode: isExplicitDemoMode() ? 'demo' : 'offline', status: 'unreachable' };
 }
-
-// 13. Google Authentication
-export async function googleLogin(credential, role = 'farmer') {
-  return apiCall('/api/v1/auth/google', {
-    method: 'POST',
-    body: JSON.stringify({ credential, role }),
-  });
-}
-

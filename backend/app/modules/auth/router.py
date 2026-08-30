@@ -7,7 +7,6 @@ from app.core.rate_limit import rate_limit
 from app.models import User
 from app.modules.auth.schemas import (
     ForgotPasswordRequest,
-    GoogleAuthRequest,
     LoginRequest,
     RefreshRequest,
     RegisterRequest,
@@ -15,7 +14,6 @@ from app.modules.auth.schemas import (
     UserResponse,
 )
 from app.modules.auth.service import (
-    authenticate_google_user,
     authenticate_user,
     issue_tokens,
     refresh_tokens,
@@ -47,18 +45,6 @@ def login(data: LoginRequest, request: Request, db: Session = Depends(get_db)):
         "success": True,
         "data": {"user": UserResponse.model_validate(user).model_dump(), **tokens},
         "message": "Login successful",
-        "request_id": getattr(request.state, "request_id", None),
-    }
-
-@router.post("/google", response_model=dict)
-@rate_limit(max_requests=25, window_seconds=60, key_prefix="rl_google")
-def google_login(data: GoogleAuthRequest, request: Request, db: Session = Depends(get_db)):
-    user = authenticate_google_user(db, data.credential, data.role, request)
-    tokens = issue_tokens(user)
-    return {
-        "success": True,
-        "data": {"user": UserResponse.model_validate(user).model_dump(), **tokens},
-        "message": "Google authentication successful",
         "request_id": getattr(request.state, "request_id", None),
     }
 

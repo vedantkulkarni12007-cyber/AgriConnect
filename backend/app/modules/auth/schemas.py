@@ -32,18 +32,6 @@ class LoginRequest(BaseModel):
     email: str
     password: str
 
-class GoogleAuthRequest(BaseModel):
-    credential: str = Field(min_length=10, description="Google ID Token from Google Identity Services")
-    role: str = Field(default="farmer")
-
-    @field_validator("role")
-    @classmethod
-    def validate_role(cls, v: str) -> str:
-        v = v.lower()
-        if v not in ("farmer", "buyer", "fpo"):
-            return "farmer"
-        return v
-
 class RefreshRequest(BaseModel):
     refresh_token: str
 

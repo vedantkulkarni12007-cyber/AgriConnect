@@ -87,7 +87,6 @@ def process_outbox(self):
         processed = 0
         for event in pending:
             try:
-                # 1. Publish to Redis Stream
                 stream_key = f"events:{event.aggregate}"
                 r.xadd(stream_key, {
                     "event_id": str(event.id),
@@ -96,31 +95,6 @@ def process_outbox(self):
                     "event_type": event.event_type,
                     "payload": str(event.payload),
                 })
-
-                # 2. Trigger Transactional Email if applicable
-                payload = event.payload if isinstance(event.payload, dict) else {}
-                if event.event_type == "user.password_reset_requested":
-                    to_email = payload.get("email")
-                    token = payload.get("token")
-                    if to_email and token:
-                        from app.core.email import send_email
-                        send_email(
-                            to_email=to_email,
-                            subject="KrishiLink — Password Reset Request",
-                            html_content=f"<p>Hello,</p><p>You requested a password reset for your KrishiLink account.</p><p>Reset Token: <b>{token}</b></p><p>If you did not request this, please ignore this email.</p>",
-                            text_content=f"Password Reset Token: {token}",
-                        )
-                elif event.event_type == "user.registered":
-                    to_email = payload.get("email")
-                    if to_email:
-                        from app.core.email import send_email
-                        send_email(
-                            to_email=to_email,
-                            subject="Welcome to KrishiLink 2.0",
-                            html_content=f"<p>Welcome to KrishiLink!</p><p>Your account ({to_email}) is now ready for transparent agricultural trading and market price discovery.</p>",
-                            text_content=f"Welcome to KrishiLink! Account: {to_email}",
-                        )
-
                 event.status = "COMPLETED"
                 processed += 1
             except Exception:

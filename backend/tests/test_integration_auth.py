@@ -84,35 +84,3 @@ def test_forgot_and_reset_password(client, ensure_test_users):
     r4 = client.post("/api/v1/auth/forgot-password", json={"email": "ramesh@demo.com"})
     tok = r4.json()["data"].get("dev_reset_token")
     client.post("/api/v1/auth/reset-password", json={"token": tok, "new_password": "demo123!"})
-
-def test_google_login_new_user(client):
-    unique_id = uuid.uuid4().hex[:6]
-    r = client.post("/api/v1/auth/google", json={
-        "credential": f"test_google_token_googlefarmer_{unique_id}",
-        "role": "farmer",
-    })
-    assert r.status_code == 200
-    data = r.json()["data"]
-    assert "access_token" in data
-    assert "user" in data
-    assert f"googlefarmer_{unique_id}@gmail.com" in data["user"]["email"]
-    assert data["user"]["is_verified"] == True
-
-def test_google_login_existing_user(client, ensure_test_users):
-    r = client.post("/api/v1/auth/google", json={
-        "credential": "test_google_token_ramesh",
-        "role": "farmer",
-    })
-    # Will authenticate or create ramesh@gmail.com
-    assert r.status_code == 200
-    assert "access_token" in r.json()["data"]
-
-def test_email_sending_mock():
-    from app.core.email import send_email
-    res = send_email(
-        to_email="farmer@example.com",
-        subject="KrishiLink Test Notification",
-        html_content="<p>Test Content</p>",
-    )
-    assert res is True
-

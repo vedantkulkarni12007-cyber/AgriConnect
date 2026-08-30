@@ -154,41 +154,6 @@ export function AuthProvider({ children }) {
     }
   };
 
-  // Google Sign-In: calls FastAPI /api/v1/auth/google
-  const loginWithGoogle = async (credential, role = 'farmer') => {
-    const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 8000);
-
-      const res = await fetch(`${API_BASE}/api/v1/auth/google`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ credential, role }),
-        signal: controller.signal,
-      });
-      clearTimeout(timeoutId);
-
-      const json = await res.json();
-      if (!res.ok) {
-        return { success: false, message: json?.detail || json?.message || 'Google authentication failed.' };
-      }
-
-      const { user: apiUser, access_token, refresh_token } = json.data;
-      const normalised = { ...apiUser, name: apiUser.full_name, id: String(apiUser.id) };
-
-      setUser(normalised);
-      localStorage.setItem('krishilink_user', JSON.stringify(normalised));
-      localStorage.setItem('krishilink_access_token', access_token);
-      localStorage.setItem('krishilink_refresh_token', refresh_token);
-
-      return { success: true, user: normalised };
-    } catch (err) {
-      console.warn('[useAuth] Google Sign-In error:', err.message);
-      return { success: false, message: 'Could not complete Google Sign-In. Please check your connection.' };
-    }
-  };
-
   // Logout: clear tokens + user state
   const logout = () => {
     setUser(null);
@@ -206,7 +171,6 @@ export function AuthProvider({ children }) {
     isFPO: user?.role === 'fpo',
     login,
     register,
-    loginWithGoogle,
     demoLogin,
     logout,
   };

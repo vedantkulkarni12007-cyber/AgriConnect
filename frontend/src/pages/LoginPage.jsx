@@ -3,67 +3,19 @@
 // Has demo login buttons + real login form
 // =============================================================
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Sprout, Tractor, ShoppingBag, Building2, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 
 export default function LoginPage() {
-  const { login, loginWithGoogle, demoLogin } = useAuth();
+  const { login, demoLogin } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-
-  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-
-  const handleGoogleCredentialResponse = async (response) => {
-    if (!response.credential) return;
-    setLoading(true);
-    setError('');
-    const result = await loginWithGoogle(response.credential);
-    setLoading(false);
-    if (result.success) {
-      const role = result.user?.role;
-      if (role === 'buyer') navigate('/buyer/dashboard');
-      else if (role === 'fpo') navigate('/fpo/dashboard');
-      else navigate('/farmer/dashboard');
-    } else {
-      setError(result.message || 'Google login failed.');
-    }
-  };
-
-  useEffect(() => {
-    if (!googleClientId) return;
-    const script = document.createElement('script');
-    script.src = 'https://accounts.google.com/gsi/client';
-    script.async = true;
-    script.defer = true;
-    script.onload = () => {
-      if (window.google?.accounts?.id) {
-        window.google.accounts.id.initialize({
-          client_id: googleClientId,
-          callback: handleGoogleCredentialResponse,
-        });
-        const btnContainer = document.getElementById('googleSignInBtn');
-        if (btnContainer) {
-          window.google.accounts.id.renderButton(btnContainer, {
-            theme: 'outline',
-            size: 'large',
-            width: 380,
-            text: 'continue_with',
-            shape: 'rectangular',
-          });
-        }
-      }
-    };
-    document.body.appendChild(script);
-    return () => {
-      if (document.body.contains(script)) document.body.removeChild(script);
-    };
-  }, [googleClientId]);
 
   const handleDemoLogin = (role) => {
     demoLogin(role);
@@ -156,20 +108,6 @@ export default function LoginPage() {
 
         {/* Real login form */}
         <div className="card">
-          {googleClientId && (
-            <div className="mb-4">
-              <div id="googleSignInBtn" className="flex justify-center" />
-              <div className="relative my-4">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-100" />
-                </div>
-                <div className="relative flex justify-center">
-                  <span className="bg-white px-3 text-xs text-gray-400">or use email / phone</span>
-                </div>
-              </div>
-            </div>
-          )}
-
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="label">Email or Phone</label>
