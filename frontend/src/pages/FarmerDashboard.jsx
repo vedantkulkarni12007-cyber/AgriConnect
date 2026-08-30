@@ -6,7 +6,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  IndianRupee, Package, FileText, Wallet,
+  Package, FileText, Wallet,
   TrendingUp, TrendingDown, Minus, MapPin, Star,
   ArrowUpRight, Warehouse, Clock, CheckCircle2
 } from 'lucide-react';
@@ -17,8 +17,8 @@ import { useAuth } from '../hooks/useAuth';
 import { useLanguage } from '../hooks/useLanguage';
 import { getCropImage } from '../utils/cropImages';
 import { getPrices, getTrend, getPriceHistory } from '../services/api';
-import { DEMO_BUYERS, DEMO_STORAGE, DEMO_LOTS } from '../data/demoData';
-import { TrendBadge, VerifiedBadge, StatusBadge } from '../components/Badges';
+import { DEMO_BUYERS, DEMO_STORAGE } from '../data/demoData';
+import { TrendBadge, VerifiedBadge } from '../components/Badges';
 import { LoadingState } from '../components/States';
 
 // ---- Summary Card (secondary level) ----
@@ -116,9 +116,9 @@ function BestPriceHeroCard({ trendData, prices, selectedCrop }) {
 
 
 // ---- Trend Info Box ----
-function TrendInfoBox({ trendData, crop }) {
+function TrendInfoBox({ trendData }) {
   if (!trendData) return null;
-  const { trend, percentage_change, explanation } = trendData;
+  const { trend, explanation } = trendData;
 
   const bg = trend === 'RISING' ? 'bg-green-50 border-green-200'
     : trend === 'FALLING' ? 'bg-red-50 border-red-200'

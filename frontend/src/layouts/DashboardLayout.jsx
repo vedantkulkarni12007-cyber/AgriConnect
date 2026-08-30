@@ -8,7 +8,7 @@ import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   Sprout, LayoutDashboard, ShoppingBag, ArrowLeftRight,
   TrendingUp, FileText, AlertCircle, LogOut,
-  Menu, X, Bell, User, CheckCheck, MapPin
+  Menu, Bell, CheckCheck, MapPin
 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { useLanguage } from '../hooks/useLanguage';

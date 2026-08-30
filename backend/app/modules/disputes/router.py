@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.deps import get_current_user
+from app.core.rate_limit import rate_limit
 from app.core.s3 import generate_presigned_url, get_s3_client, upload_file
 from app.models import AuditLog, Dispute, Evidence, User
 from app.modules.notifications.service import NotificationService
@@ -30,6 +31,7 @@ class EvidenceRequest(BaseModel):
     mime_type: str | None = None
 
 @router.post("", response_model=dict, status_code=201)
+@rate_limit(max_requests=15, window_seconds=60, key_prefix="rl_dispute")
 def create_dispute(data: CreateDisputeRequest, request: Request, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     txn_id = None
     if data.transaction_id:

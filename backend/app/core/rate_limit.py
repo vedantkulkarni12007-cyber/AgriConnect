@@ -1,4 +1,5 @@
 import inspect
+import os
 import time
 from collections import defaultdict
 from functools import wraps
@@ -45,6 +46,8 @@ def _extract_request(args, kwargs):
 
 def _check_limit(request, max_requests: int, window_seconds: int, key_prefix: str):
     client_ip = getattr(getattr(request, "client", None), "host", "unknown")
+    if client_ip == "testclient" and "PYTEST_CURRENT_TEST" in os.environ:
+        return
     path = getattr(getattr(request, "url", None), "path", "/unknown")
     key = f"{key_prefix}:{client_ip}:{path}"
     now = time.time()

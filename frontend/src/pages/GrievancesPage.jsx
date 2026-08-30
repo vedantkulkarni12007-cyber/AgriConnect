@@ -33,11 +33,7 @@ export default function GrievancesPage() {
   const [submittedMessage, setSubmittedMessage] = useState(null);
   const [errorMessage, setErrorMessage] = useState(null);
 
-  useEffect(() => {
-    loadGrievances();
-  }, []);
-
-  async function loadGrievances() {
+  const loadGrievances = async () => {
     setLoading(true);
     setErrorMessage(null);
     const res = await getGrievances();
@@ -47,7 +43,11 @@ export default function GrievancesPage() {
       setErrorMessage(res.error || 'Failed to load support tickets. Please refresh.');
     }
     setLoading(false);
-  }
+  };
+
+  useEffect(() => {
+    loadGrievances();
+  }, []);
 
   async function handleSubmit(e) {
     e.preventDefault();

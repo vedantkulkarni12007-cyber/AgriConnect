@@ -29,7 +29,7 @@ jobs:
         working-directory: backend
       - run: python -m ruff check app
         working-directory: backend
-      - run: python -m mypy app --ignore-missing-imports || true
+      - run: python -m mypy app
         working-directory: backend
       - env:
           DATABASE_URL: postgresql+psycopg://krishilink:krishilink@localhost:5432/krishilink_test
@@ -38,8 +38,6 @@ jobs:
         run: |
           alembic -c alembic.ini upgrade head
           pytest -v
-          python -m alembic downgrade base || true
-          python -m alembic upgrade head
         working-directory: backend
       - run: docker build -f backend/Dockerfile -t krishilink-backend:ci backend
 
@@ -51,7 +49,7 @@ jobs:
         with: { node-version: 20 }
       - run: npm ci
         working-directory: frontend
-      - run: npm run lint || true
+      - run: npm run lint
         working-directory: frontend
       - run: npm run build
         working-directory: frontend

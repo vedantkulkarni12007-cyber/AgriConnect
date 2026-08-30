@@ -11,14 +11,11 @@
 
 ## 📌 Repository State
 
-| Attribute | Current Value |
-| :--- | :--- |
-| Current Branch | `feature/production-rebuild-2.0` |
-| Current HEAD Commit | `6eb1d68` (`feat(lots): expose GET /lots/{lot_id}/earnings endpoint with integration tests`) |
-| Local Unit/Integration Tests | **68 passing** (0 failing, 1 skipped) |
-| CI Status | 🟢 **100% Green (`✓ 2/2`)** across Frontend and Backend on GitHub Actions |
-| Frontend Status | 0 errors, Vite production bundle builds in ~20s |
-| Legacy Reference Files | `backend/routes/`, `backend/services/`, `flask_app_legacy.py` (Deprecated Flask — preserved for reference only) |
+- **Active Branch**: `feature/production-rebuild-2.0`
+- **Total Passing Automated Tests**: **70 tests passing at 100%** (`backend/tests/`)
+- **Strict Quality Gates**: `python -m ruff check app` (0 errors), `python -m mypy app` (0 errors), `npm run lint` (0 errors), `npm run build` (0 errors), strict CI pipeline (all `|| true` bypasses eliminated).
+- **Frontend Status**: 0 errors, Vite production bundle builds in ~20s
+- **Legacy Reference Files**: `backend/routes/`, `backend/services/`, `flask_app_legacy.py` (Deprecated Flask — preserved for reference only)
 
 ---
 

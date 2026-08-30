@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.deps import get_current_user
 from app.core.idempotency import check_idempotency, save_idempotency
+from app.core.rate_limit import rate_limit
 from app.models import AuditLog, Lot, Offer, OutboxEvent, Reservation, User
 from app.modules.notifications.service import NotificationService
 
@@ -30,6 +31,7 @@ def _ensure_buyer(user: User):
         raise HTTPException(status_code=403, detail="Only buyers can create offers")
 
 @router.post("", response_model=dict, status_code=201)
+@rate_limit(max_requests=30, window_seconds=60, key_prefix="rl_offer")
 def create_offer(data: CreateOfferRequest, request: Request, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     _ensure_buyer(user)
     cached = check_idempotency(request, db)

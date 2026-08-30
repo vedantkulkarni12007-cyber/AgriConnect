@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.deps import get_current_user
 from app.core.idempotency import check_idempotency, save_idempotency
+from app.core.rate_limit import rate_limit
 from app.models import AuditLog, Lot, OutboxEvent, Reservation, Transaction, User
 from app.modules.notifications.service import NotificationService
 
@@ -32,6 +33,7 @@ class TransitionRequest(BaseModel):
     to_status: str
 
 @router.post("", response_model=dict, status_code=201)
+@rate_limit(max_requests=20, window_seconds=60, key_prefix="rl_txn")
 def create_transaction(data: CreateTxnRequest, request: Request, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     cached = check_idempotency(request, db)
     if cached:

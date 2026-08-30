@@ -36,6 +36,6 @@
 3. `gh --repo vedantkulkarni12007-cyber/KrishiLink run view <id>` — wait for `✓` on both jobs before notifying
 
 ## Current Status (2026-08-30)
-- **Branch**: `feature/production-rebuild-2.0` (HEAD `6eb1d68`, CI 100% green)
-- **Tests**: 68 passed (0 failed, 1 skipped) across unit, integration, earnings, and multi-role E2E journeys
-- **Phases 0–10 Complete**: Auth, RBAC, Rate Limiting, PostGIS, Matching, Negotiations, Escrow FSM, S3 Evidence, Live Notifications, Customer Support Tickets, Farmer Earnings Endpoint, and CI/CD Automation.
+- **Branch**: `feature/production-rebuild-2.0`
+- **Tests**: 70 passed (0 failed, 0 skipped) across unit, integration, earnings, FSM, and multi-role E2E journeys
+- **Phases 0–8 Hardened**: Auth, RBAC, Rate Limiting, Idempotency, PostGIS, Matching, Negotiations, Escrow FSM, S3 Evidence, Live Notifications, Customer Support Tickets, Strict CI Gates (no `|| true` bypasses).

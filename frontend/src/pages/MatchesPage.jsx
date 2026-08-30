@@ -3,9 +3,9 @@
 // Shows rule-based matched buyers for a produce lot
 // =============================================================
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Star, MapPin, CheckCircle2, Info, Package } from 'lucide-react';
+import { Star, MapPin, CheckCircle2, Info } from 'lucide-react';
 import { getMatches, createOffer } from '../services/api';
 import { VerifiedBadge } from '../components/Badges';
 import { LoadingState, EmptyState } from '../components/States';
@@ -136,21 +136,20 @@ export default function MatchesPage() {
   });
   const [matches, setMatches] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [offeredTo, setOfferedTo] = useState([]);
 
   // Quick form to customize search if no lot was passed
   const [editMode, setEditMode] = useState(!lotFromState);
 
-  useEffect(() => {
-    if (!editMode) loadMatches();
-  }, [editMode, lot]);
-
-  async function loadMatches() {
+  const loadMatches = useCallback(async () => {
     setLoading(true);
     const res = await getMatches(lot);
     if (res.success) setMatches(res.data);
     setLoading(false);
-  }
+  }, [lot]);
+
+  useEffect(() => {
+    if (!editMode) loadMatches();
+  }, [editMode, loadMatches]);
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
