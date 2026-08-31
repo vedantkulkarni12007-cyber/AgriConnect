@@ -5,7 +5,6 @@ from typing import Any
 import requests
 from dotenv import load_dotenv
 
-
 # backend/app/modules/prices/mandi_api.py
 # backend/.env is three parents above this file
 BACKEND_DIR = Path(__file__).resolve().parents[3]
@@ -29,9 +28,7 @@ def fetch_mandi_prices(limit: int = 100) -> list[dict[str, Any]]:
     """
 
     if not MANDI_API_KEY:
-        raise RuntimeError(
-            f"MANDI_API_KEY is missing. Expected it in: {ENV_FILE}"
-        )
+        raise RuntimeError(f"MANDI_API_KEY is missing. Expected it in: {ENV_FILE}")
 
     # Hard cap: we NEVER request more than 100.
     limit = min(limit, 100)
@@ -58,9 +55,7 @@ def fetch_mandi_prices(limit: int = 100) -> list[dict[str, Any]]:
     records = payload.get("records", [])
 
     if not isinstance(records, list):
-        raise RuntimeError(
-            "Unexpected response format from data.gov.in"
-        )
+        raise RuntimeError("Unexpected response format from data.gov.in")
 
     # Extra safety: never return more than 100.
     records = records[:100]

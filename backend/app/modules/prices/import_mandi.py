@@ -6,17 +6,13 @@ from pathlib import Path
 from app.core.database import SessionLocal
 from app.models import (
     Crop,
+    IngestionRun,
     Market,
     PriceObservation,
     PriceSource,
-    IngestionRun,
 )
 
-
-JSON_FILE = (
-    Path(__file__).resolve().parents[3]
-    / "mandi_final_100.json"
-)
+JSON_FILE = Path(__file__).resolve().parents[3] / "mandi_final_100.json"
 
 
 def make_record_id(record):
@@ -35,9 +31,7 @@ def make_record_id(record):
 
     raw = "|".join(str(value) for value in fields)
 
-    return hashlib.sha256(
-        raw.encode("utf-8")
-    ).hexdigest()
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
 def parse_date(value):
@@ -54,9 +48,7 @@ def load_first_100():
     print(f"Reading: {JSON_FILE}")
 
     if not JSON_FILE.exists():
-        raise FileNotFoundError(
-            f"Could not find {JSON_FILE}"
-        )
+        raise FileNotFoundError(f"Could not find {JSON_FILE}")
 
     with open(
         JSON_FILE,
@@ -68,16 +60,12 @@ def load_first_100():
     records = payload.get("records", [])
 
     if not isinstance(records, list):
-        raise RuntimeError(
-            "Invalid JSON format: records is not a list"
-        )
+        raise RuntimeError("Invalid JSON format: records is not a list")
 
     # HARD LIMIT: only first 100.
     records = records[:100]
 
-    print(
-        f"Loaded {len(records)} records from JSON."
-    )
+    print(f"Loaded {len(records)} records from JSON.")
 
     return records
 
@@ -91,28 +79,16 @@ def import_records(records):
     rejected = 0
 
     try:
-
         # ---------------------------------------------------------
         # SOURCE
         # ---------------------------------------------------------
 
-        source = (
-            db.query(PriceSource)
-            .filter(
-                PriceSource.name
-                == "data.gov.in Mandi Prices"
-            )
-            .first()
-        )
+        source = db.query(PriceSource).filter(PriceSource.name == "data.gov.in Mandi Prices").first()
 
         if not source:
-
             source = PriceSource(
                 name="data.gov.in Mandi Prices",
-                url=(
-                    "https://api.data.gov.in/"
-                    "resource/9ef84268-d588-465a-a308-a864a43d0070"
-                ),
+                url=("https://api.data.gov.in/resource/9ef84268-d588-465a-a308-a864a43d0070"),
                 adapter="data_gov_mandi",
                 is_active=True,
             )
@@ -144,89 +120,52 @@ def import_records(records):
             records,
             start=1,
         ):
-
             try:
+                commodity = str(record.get("commodity", "")).strip()
 
-                commodity = str(
-                    record.get("commodity", "")
-                ).strip()
+                market_name = str(record.get("market", "")).strip()
 
-                market_name = str(
-                    record.get("market", "")
-                ).strip()
+                district = str(record.get("district", "")).strip()
 
-                district = str(
-                    record.get("district", "")
-                ).strip()
+                state = str(record.get("state", "")).strip()
 
-                state = str(
-                    record.get("state", "")
-                ).strip()
+                arrival_date = parse_date(record.get("arrival_date"))
 
-                arrival_date = parse_date(
-                    record.get("arrival_date")
-                )
+                min_price = float(record.get("min_price", 0))
 
-                min_price = float(
-                    record.get("min_price", 0)
-                )
+                modal_price = float(record.get("modal_price", 0))
 
-                modal_price = float(
-                    record.get("modal_price", 0)
-                )
-
-                max_price = float(
-                    record.get("max_price", 0)
-                )
+                max_price = float(record.get("max_price", 0))
 
                 # -------------------------------------------------
                 # VALIDATION
                 # -------------------------------------------------
 
                 if not commodity:
-                    raise ValueError(
-                        "Missing commodity"
-                    )
+                    raise ValueError("Missing commodity")
 
                 if not market_name:
-                    raise ValueError(
-                        "Missing market"
-                    )
+                    raise ValueError("Missing market")
 
                 if not district:
-                    raise ValueError(
-                        "Missing district"
-                    )
+                    raise ValueError("Missing district")
 
                 if not state:
-                    raise ValueError(
-                        "Missing state"
-                    )
+                    raise ValueError("Missing state")
 
                 if not arrival_date:
-                    raise ValueError(
-                        "Missing arrival date"
-                    )
+                    raise ValueError("Missing arrival date")
 
                 if modal_price <= 0:
-                    raise ValueError(
-                        "Invalid modal price"
-                    )
+                    raise ValueError("Invalid modal price")
 
                 # -------------------------------------------------
                 # CROP
                 # -------------------------------------------------
 
-                crop = (
-                    db.query(Crop)
-                    .filter(
-                        Crop.name == commodity
-                    )
-                    .first()
-                )
+                crop = db.query(Crop).filter(Crop.name == commodity).first()
 
                 if not crop:
-
                     crop = Crop(
                         name=commodity,
                         unit="quintal",
@@ -250,7 +189,6 @@ def import_records(records):
                 )
 
                 if not market:
-
                     market = Market(
                         name=market_name,
                         district=district,
@@ -266,36 +204,23 @@ def import_records(records):
                 # DUPLICATE CHECK
                 # -------------------------------------------------
 
-                source_record_id = make_record_id(
-                    record
-                )
+                source_record_id = make_record_id(record)
 
                 existing = (
                     db.query(PriceObservation)
                     .filter(
-                        PriceObservation.crop_id
-                        == crop.id,
-
-                        PriceObservation.market_id
-                        == market.id,
-
-                        PriceObservation.price_date
-                        == arrival_date,
-
-                        PriceObservation.source_id
-                        == source.id,
+                        PriceObservation.crop_id == crop.id,
+                        PriceObservation.market_id == market.id,
+                        PriceObservation.price_date == arrival_date,
+                        PriceObservation.source_id == source.id,
                     )
                     .first()
                 )
 
                 if existing:
-
                     skipped += 1
 
-                    print(
-                        f"[{index}/100] SKIPPED "
-                        f"{commodity} | {market_name}"
-                    )
+                    print(f"[{index}/100] SKIPPED {commodity} | {market_name}")
 
                     continue
 
@@ -304,41 +229,21 @@ def import_records(records):
                 # -------------------------------------------------
 
                 observation = PriceObservation(
-
                     crop_id=crop.id,
-
                     market_id=market.id,
-
                     price_date=arrival_date,
-
                     min_price=min_price,
-
                     modal_price=modal_price,
-
                     max_price=max_price,
-
                     # API doesn't provide volume.
                     volume_tonnes=None,
-
                     source_id=source.id,
-
                     source_record_id=source_record_id,
-
-                    source_url=(
-                        "https://api.data.gov.in/"
-                        "resource/9ef84268-d588-465a-a308-a864a43d0070"
-                    ),
-
-                    retrieved_at=datetime.now(
-                        timezone.utc
-                    ),
-
+                    source_url=("https://api.data.gov.in/resource/9ef84268-d588-465a-a308-a864a43d0070"),
+                    retrieved_at=datetime.now(timezone.utc),
                     ingestion_run_id=ingestion.id,
-
                     parser_version="mandi-v1",
-
                     normalization_version="v1",
-
                     quality_status="MEDIUM",
                 )
 
@@ -346,21 +251,12 @@ def import_records(records):
 
                 inserted += 1
 
-                print(
-                    f"[{index}/100] "
-                    f"{commodity} | "
-                    f"{market_name} | "
-                    f"₹{modal_price}"
-                )
+                print(f"[{index}/100] {commodity} | {market_name} | ₹{modal_price}")
 
             except Exception as exc:
-
                 rejected += 1
 
-                print(
-                    f"[{index}/100] "
-                    f"REJECTED: {exc}"
-                )
+                print(f"[{index}/100] REJECTED: {exc}")
 
         # ---------------------------------------------------------
         # FINISH
@@ -372,9 +268,7 @@ def import_records(records):
 
         ingestion.status = "completed"
 
-        ingestion.finished_at = datetime.now(
-            timezone.utc
-        )
+        ingestion.finished_at = datetime.now(timezone.utc)
 
         db.commit()
 
@@ -383,32 +277,22 @@ def import_records(records):
         print("IMPORT COMPLETE")
         print("=" * 50)
 
-        print(
-            f"Fetched : {len(records)}"
-        )
+        print(f"Fetched : {len(records)}")
 
-        print(
-            f"Inserted: {inserted}"
-        )
+        print(f"Inserted: {inserted}")
 
-        print(
-            f"Skipped : {skipped}"
-        )
+        print(f"Skipped : {skipped}")
 
-        print(
-            f"Rejected: {rejected}"
-        )
+        print(f"Rejected: {rejected}")
 
         print("=" * 50)
 
     except Exception:
-
         db.rollback()
 
         raise
 
     finally:
-
         db.close()
 
 
