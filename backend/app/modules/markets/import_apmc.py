@@ -3,7 +3,7 @@ import os
 import time
 from typing import Any
 
-import requests
+import httpx
 from geoalchemy2.elements import WKTElement
 from sqlalchemy.orm import Session
 
@@ -67,7 +67,7 @@ def geocode_address(query: str, cache: dict[str, Any]) -> tuple[float, float] | 
 
     try:
         time.sleep(1.0)  # Respect OpenStreetMap 1 req/sec policy
-        resp = requests.get(url, params=params, headers=headers, timeout=10)
+        resp = httpx.get(url, params=params, headers=headers, timeout=10.0)
         if resp.status_code == 200:
             data = resp.json()
             if isinstance(data, list) and len(data) > 0:

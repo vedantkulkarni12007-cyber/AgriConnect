@@ -3,7 +3,7 @@ import os
 import time
 from typing import Any
 
-import requests
+import httpx
 
 from app.core.config import settings
 
@@ -124,10 +124,10 @@ def fetch_mandi_prices(
     )
 
     try:
-        response = requests.get(
+        response = httpx.get(
             api_url,
             params=params,
-            timeout=15,
+            timeout=15.0,
             headers={
                 "User-Agent": "KrishiLink-Platform/2.0",
                 "Accept": "application/json",
