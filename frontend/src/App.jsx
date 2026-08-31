@@ -11,12 +11,15 @@ import { LanguageProvider } from './hooks/useLanguage';
 import PublicLayout from './layouts/PublicLayout';
 import DashboardLayout from './layouts/DashboardLayout';
 
+import React, { Suspense, lazy } from 'react';
+
 // Public pages
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import PricesPage from './pages/PricesPage';
-import MapPage from './pages/MapPage';
+
+const MapPage = lazy(() => import('./pages/MapPage'));
 
 // Dashboard pages
 import FarmerDashboard from './pages/FarmerDashboard';
@@ -53,51 +56,53 @@ function App() {
     <LanguageProvider>
       <AuthProvider>
         <BrowserRouter>
-          <Routes>
-            {/* ---- PUBLIC ROUTES (no login required) ---- */}
-            <Route element={<PublicLayout />}>
-              <Route path="/" element={<LandingPage />} />
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/register" element={<RegisterPage />} />
-              <Route path="/prices" element={<PricesPage />} />
-              <Route path="/map" element={<MapPage />} />
-            </Route>
+          <Suspense fallback={<div className="flex h-screen w-full items-center justify-center text-green-700 font-medium">Loading Page...</div>}>
+            <Routes>
+              {/* ---- PUBLIC ROUTES (no login required) ---- */}
+              <Route element={<PublicLayout />}>
+                <Route path="/" element={<LandingPage />} />
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/register" element={<RegisterPage />} />
+                <Route path="/prices" element={<PricesPage />} />
+                <Route path="/map" element={<MapPage />} />
+              </Route>
 
-            {/* ---- FARMER ROUTES ---- */}
-            <Route element={
-              <ProtectedRoute>
-                <DashboardLayout />
-              </ProtectedRoute>
-            }>
-              <Route path="/farmer/dashboard" element={<FarmerDashboard />} />
-              <Route path="/sell" element={<SellPage />} />
-              <Route path="/matches" element={<MatchesPage />} />
-              <Route path="/offers" element={<OffersPage />} />
-              <Route path="/transactions" element={<TransactionsPage />} />
-              <Route path="/grievances" element={<GrievancesPage />} />
-            </Route>
+              {/* ---- FARMER ROUTES ---- */}
+              <Route element={
+                <ProtectedRoute>
+                  <DashboardLayout />
+                </ProtectedRoute>
+              }>
+                <Route path="/farmer/dashboard" element={<FarmerDashboard />} />
+                <Route path="/sell" element={<SellPage />} />
+                <Route path="/matches" element={<MatchesPage />} />
+                <Route path="/offers" element={<OffersPage />} />
+                <Route path="/transactions" element={<TransactionsPage />} />
+                <Route path="/grievances" element={<GrievancesPage />} />
+              </Route>
 
-            {/* ---- BUYER ROUTES ---- */}
-            <Route element={
-              <ProtectedRoute>
-                <DashboardLayout />
-              </ProtectedRoute>
-            }>
-              <Route path="/buyer/dashboard" element={<BuyerDashboard />} />
-            </Route>
+              {/* ---- BUYER ROUTES ---- */}
+              <Route element={
+                <ProtectedRoute>
+                  <DashboardLayout />
+                </ProtectedRoute>
+              }>
+                <Route path="/buyer/dashboard" element={<BuyerDashboard />} />
+              </Route>
 
-            {/* ---- FPO ROUTES ---- */}
-            <Route element={
-              <ProtectedRoute>
-                <DashboardLayout />
-              </ProtectedRoute>
-            }>
-              <Route path="/fpo/dashboard" element={<FPODashboard />} />
-            </Route>
+              {/* ---- FPO ROUTES ---- */}
+              <Route element={
+                <ProtectedRoute>
+                  <DashboardLayout />
+                </ProtectedRoute>
+              }>
+                <Route path="/fpo/dashboard" element={<FPODashboard />} />
+              </Route>
 
-            {/* ---- REDIRECT UNKNOWN ROUTES ---- */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+              {/* ---- REDIRECT UNKNOWN ROUTES ---- */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Suspense>
         </BrowserRouter>
       </AuthProvider>
     </LanguageProvider>
