@@ -13,6 +13,7 @@ from app.modules.lots.service import calculate_farmer_earnings
 
 router = APIRouter(prefix="/lots", tags=["lots"])
 
+
 class CreateLotRequest(BaseModel):
     crop: str = Field(min_length=2)
     variety_id: str | None = None
@@ -27,11 +28,18 @@ class CreateLotRequest(BaseModel):
     available_until: date | None = None
     market_reference_price: float | None = None
 
+
 def gen_public_id(db: Session):
     return f"KL-LOT-{uuid.uuid4().hex[:10].upper()}"
 
+
 @router.post("", response_model=dict, status_code=201)
-def create_lot(data: CreateLotRequest, request: Request, db: Session = Depends(get_db), user: User = Depends(require_role("farmer","fpo","admin"))):
+def create_lot(
+    data: CreateLotRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_role("farmer", "fpo", "admin")),
+):
     cached = check_idempotency(request, db)
     if cached:
         return cached.response_body
@@ -53,18 +61,38 @@ def create_lot(data: CreateLotRequest, request: Request, db: Session = Depends(g
         district=data.district or user.district,
         harvest_date=data.harvest_date,
         available_from=data.available_from or date.today(),
-        available_until=data.available_until or (date.today()+timedelta(days=14)),
+        available_until=data.available_until or (date.today() + timedelta(days=14)),
         status="PUBLISHED",
     )
     db.add(lot)
     db.commit()
     db.refresh(lot)
-    body = {"success": True, "data": {"id": str(lot.id), "public_id": lot.public_id, "crop": lot.crop_name, "quantity": float(lot.quantity), "grade": lot.grade, "status": lot.status}, "message": "Lot created", "request_id": getattr(request.state, "request_id", None)}
+    body = {
+        "success": True,
+        "data": {
+            "id": str(lot.id),
+            "public_id": lot.public_id,
+            "crop": lot.crop_name,
+            "quantity": float(lot.quantity),
+            "grade": lot.grade,
+            "status": lot.status,
+        },
+        "message": "Lot created",
+        "request_id": getattr(request.state, "request_id", None),
+    }
     save_idempotency(request, db, 201, body)
     return body
 
+
 @router.get("", response_model=dict)
-def list_lots(request: Request, db: Session = Depends(get_db), status: str | None = None, crop: str | None = None, page: int = Query(1, ge=1), limit: int = Query(20, ge=1, le=100)):
+def list_lots(
+    request: Request,
+    db: Session = Depends(get_db),
+    status: str | None = None,
+    crop: str | None = None,
+    page: int = Query(1, ge=1),
+    limit: int = Query(20, ge=1, le=100),
+):
     q = db.query(Lot).filter(Lot.deleted_at.is_(None))
     if status:
         q = q.filter(Lot.status == status)
@@ -72,9 +100,28 @@ def list_lots(request: Request, db: Session = Depends(get_db), status: str | Non
         q = q.filter(Lot.crop_name.ilike(crop))
     q = q.order_by(Lot.created_at.desc())
     total = q.count()
-    items = q.offset((page-1)*limit).limit(limit).all()
-    data = [{"id": str(l.id), "public_id": l.public_id, "crop": l.crop_name, "quantity": float(l.quantity), "grade": l.grade, "status": l.status, "location": l.location_text, "district": l.district, "asking_price": float(l.asking_price) if l.asking_price else None} for l in items]
-    return {"success": True, "data": {"items": data, "total": total, "page": page, "limit": limit, "pages": (total+limit-1)//limit}, "message": f"{len(data)} lots", "request_id": getattr(request.state, "request_id", None)}
+    items = q.offset((page - 1) * limit).limit(limit).all()
+    data = [
+        {
+            "id": str(l.id),
+            "public_id": l.public_id,
+            "crop": l.crop_name,
+            "quantity": float(l.quantity),
+            "grade": l.grade,
+            "status": l.status,
+            "location": l.location_text,
+            "district": l.district,
+            "asking_price": float(l.asking_price) if l.asking_price else None,
+        }
+        for l in items
+    ]
+    return {
+        "success": True,
+        "data": {"items": data, "total": total, "page": page, "limit": limit, "pages": (total + limit - 1) // limit},
+        "message": f"{len(data)} lots",
+        "request_id": getattr(request.state, "request_id", None),
+    }
+
 
 @router.get("/{lot_id}", response_model=dict)
 def get_lot(lot_id: str, request: Request, db: Session = Depends(get_db)):
@@ -110,12 +157,28 @@ def get_lot(lot_id: str, request: Request, db: Session = Depends(get_db)):
         "request_id": getattr(request.state, "request_id", None),
     }
 
+
 @router.get("/public/{public_id}", response_model=dict)
 def public_lot(public_id: str, request: Request, db: Session = Depends(get_db)):
     lot = db.query(Lot).filter(Lot.public_id == public_id).first()
     if not lot:
         raise HTTPException(status_code=404, detail="Lot not found")
-    return {"success": True, "data": {"public_id": lot.public_id, "crop": lot.crop_name, "grade": lot.grade, "quantity": float(lot.quantity), "unit": lot.unit, "status": lot.status, "district": lot.district, "created_at": lot.created_at.isoformat() if lot.created_at else None}, "message": "Public lot", "request_id": getattr(request.state, "request_id", None)}
+    return {
+        "success": True,
+        "data": {
+            "public_id": lot.public_id,
+            "crop": lot.crop_name,
+            "grade": lot.grade,
+            "quantity": float(lot.quantity),
+            "unit": lot.unit,
+            "status": lot.status,
+            "district": lot.district,
+            "created_at": lot.created_at.isoformat() if lot.created_at else None,
+        },
+        "message": "Public lot",
+        "request_id": getattr(request.state, "request_id", None),
+    }
+
 
 @router.get("/{lot_id}/earnings", response_model=dict)
 def get_lot_earnings(

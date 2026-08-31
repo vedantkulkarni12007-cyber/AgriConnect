@@ -14,19 +14,13 @@ class NotificationService:
         title: str,
         message: str,
         related_id: uuid.UUID | str | None = None,
-        outbox: bool = True
+        outbox: bool = True,
     ) -> Notification:
         u_id = user_id if isinstance(user_id, uuid.UUID) else uuid.UUID(str(user_id))
         r_id = related_id if (related_id is None or isinstance(related_id, uuid.UUID)) else uuid.UUID(str(related_id))
 
         notif = Notification(
-            id=uuid.uuid4(),
-            user_id=u_id,
-            type=type_,
-            title=title,
-            message=message,
-            related_id=r_id,
-            is_read=False
+            id=uuid.uuid4(), user_id=u_id, type=type_, title=title, message=message, related_id=r_id, is_read=False
         )
         db.add(notif)
 
@@ -41,9 +35,9 @@ class NotificationService:
                     "title": title,
                     "message": message,
                     "type": type_,
-                    "related_id": str(r_id) if r_id else None
+                    "related_id": str(r_id) if r_id else None,
                 },
-                status="PENDING"
+                status="PENDING",
             )
             db.add(event)
 

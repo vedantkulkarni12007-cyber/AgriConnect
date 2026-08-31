@@ -13,6 +13,7 @@ def check_idempotency(request: Request, db: Session):
         return existing
     return None
 
+
 def save_idempotency(request: Request, db: Session, status: int, body: dict):
     key = request.headers.get("Idempotency-Key")
     if not key:

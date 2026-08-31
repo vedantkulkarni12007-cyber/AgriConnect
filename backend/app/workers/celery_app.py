@@ -31,6 +31,7 @@ celery_app.conf.update(
 
 celery_app.autodiscover_tasks(["app.workers"])
 
+
 @celery_app.task(name="health.ping")
 def ping():
     return "pong"
@@ -45,10 +46,11 @@ def expire_reservations():
 
     db = SessionLocal()
     try:
-        expired = db.query(Reservation).filter(
-            Reservation.status == "ACTIVE",
-            Reservation.expires_at < datetime.now(timezone.utc)
-        ).update({"status": "EXPIRED"})
+        expired = (
+            db.query(Reservation)
+            .filter(Reservation.status == "ACTIVE", Reservation.expires_at < datetime.now(timezone.utc))
+            .update({"status": "EXPIRED"})
+        )
         db.commit()
         return {"expired": expired}
     finally:
@@ -67,9 +69,14 @@ def process_outbox(self):
     db = SessionLocal()
     try:
         # Use row locking with skip_locked to support safe multi-worker concurrency
-        pending = db.query(OutboxEvent).filter(
-            OutboxEvent.status == "PENDING"
-        ).order_by(OutboxEvent.created_at).with_for_update(skip_locked=True).limit(100).all()
+        pending = (
+            db.query(OutboxEvent)
+            .filter(OutboxEvent.status == "PENDING")
+            .order_by(OutboxEvent.created_at)
+            .with_for_update(skip_locked=True)
+            .limit(100)
+            .all()
+        )
 
         if not pending:
             return {"processed": 0}
@@ -88,13 +95,16 @@ def process_outbox(self):
         for event in pending:
             try:
                 stream_key = f"events:{event.aggregate}"
-                r.xadd(stream_key, {
-                    "event_id": str(event.id),
-                    "aggregate": event.aggregate,
-                    "aggregate_id": event.aggregate_id,
-                    "event_type": event.event_type,
-                    "payload": str(event.payload),
-                })
+                r.xadd(
+                    stream_key,
+                    {
+                        "event_id": str(event.id),
+                        "aggregate": event.aggregate,
+                        "aggregate_id": event.aggregate_id,
+                        "event_type": event.event_type,
+                        "payload": str(event.payload),
+                    },
+                )
                 event.status = "COMPLETED"
                 processed += 1
             except Exception:

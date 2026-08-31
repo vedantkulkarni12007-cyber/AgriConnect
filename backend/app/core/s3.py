@@ -5,6 +5,7 @@ from app.core.config import settings
 
 _s3_client = None
 
+
 def get_s3_client():
     global _s3_client
     if _s3_client is None:
@@ -17,6 +18,7 @@ def get_s3_client():
             aws_secret_access_key=settings.s3_secret_key,
         )
     return _s3_client
+
 
 def upload_file(file_obj, key: str, content_type: str | None = None) -> str:
     """Upload file to S3, return object key"""
@@ -31,6 +33,7 @@ def upload_file(file_obj, key: str, content_type: str | None = None) -> str:
     client.upload_fileobj(file_obj, settings.s3_bucket, key, ExtraArgs=extra_args)
     return key
 
+
 def generate_presigned_url(key: str, expiration: int = 3600) -> str:
     """Generate presigned URL for download"""
     client = get_s3_client()
@@ -43,6 +46,7 @@ def generate_presigned_url(key: str, expiration: int = 3600) -> str:
         ExpiresIn=expiration,
     )
 
+
 def delete_file(key: str) -> bool:
     """Delete file from S3"""
     client = get_s3_client()
@@ -54,6 +58,7 @@ def delete_file(key: str) -> bool:
         return True
     except ClientError:
         return False
+
 
 def file_exists(key: str) -> bool:
     """Check if file exists in S3"""

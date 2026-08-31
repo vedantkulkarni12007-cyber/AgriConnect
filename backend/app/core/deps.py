@@ -9,13 +9,18 @@ from app.models import User
 
 bearer = HTTPBearer(auto_error=False)
 
+
 def get_current_user(
     request: Request,
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer),
     db: Session = Depends(get_db),
 ) -> User:
     if not credentials or credentials.scheme.lower() != "bearer":
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing authentication", headers={"WWW-Authenticate": "Bearer"})
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Missing authentication",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     token = credentials.credentials
     try:
         payload = decode_token(token)
@@ -31,6 +36,7 @@ def get_current_user(
     user = None
     try:
         import uuid
+
         uid = uuid.UUID(user_id)
         user = db.get(User, uid)
     except Exception:
@@ -41,13 +47,17 @@ def get_current_user(
     request.state.user_role = payload.get("role")
     return user
 
+
 def require_role(*allowed: str):
     allowed_set = {r.lower() for r in allowed}
+
     def checker(user: User = Depends(get_current_user)):
         if user.role.lower() not in allowed_set:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"Role {user.role} not allowed")
         return user
+
     return checker
+
 
 def get_request_id(request: Request) -> str:
     return getattr(request.state, "request_id", request.headers.get("X-Request-ID", ""))

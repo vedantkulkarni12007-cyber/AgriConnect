@@ -10,13 +10,16 @@ from app.core.config import settings
 
 _tracer_provider = None
 
+
 def init_otel(app=None):
     global _tracer_provider
 
-    resource = Resource(attributes={
-        SERVICE_NAME: "krishilink-api",
-        "environment": settings.env,
-    })
+    resource = Resource(
+        attributes={
+            SERVICE_NAME: "krishilink-api",
+            "environment": settings.env,
+        }
+    )
 
     _tracer_provider = TracerProvider(resource=resource)
     trace.set_tracer_provider(_tracer_provider)
@@ -25,6 +28,7 @@ def init_otel(app=None):
     if settings.env == "production":
         try:
             from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+
             otlp_exporter = OTLPSpanExporter(endpoint="http://jaeger:4317", insecure=True)
             _tracer_provider.add_span_processor(BatchSpanProcessor(otlp_exporter))
         except Exception:
@@ -41,6 +45,7 @@ def init_otel(app=None):
     RedisInstrumentor().instrument()
 
     return trace.get_tracer(__name__)
+
 
 def get_tracer(name: str):
     return trace.get_tracer(name)

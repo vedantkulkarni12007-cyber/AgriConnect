@@ -17,7 +17,9 @@ class Settings(BaseSettings):
     host: str = Field(default="0.0.0.0")
     port: int = Field(default=8000)
     frontend_url: str = Field(default="http://localhost:3000")
-    cors_origins: str = Field(default="http://localhost:3000,http://localhost:5173,http://localhost:5174,http://localhost:8000,http://localhost:8001")
+    cors_origins: str = Field(
+        default="http://localhost:3000,http://localhost:5173,http://localhost:5174,http://localhost:8000,http://localhost:8001"
+    )
 
     database_url: str = Field(default="postgresql+psycopg://krishilink:krishilink@localhost:5432/krishilink")
     database_url_sync: str | None = Field(default=None)
@@ -35,6 +37,10 @@ class Settings(BaseSettings):
     s3_secret_key: str | None = Field(default=None)
 
     payment_provider: str = Field(default="mock")
+
+    mandi_api_key: str | None = Field(default=None)
+    agmarknet_api_key: str | None = Field(default=None)
+    mandi_api_url: str = Field(default="https://api.data.gov.in/resource/9ef84268-d588-465a-a308-a864a43d0070")
 
     log_level: str = Field(default="INFO")
 

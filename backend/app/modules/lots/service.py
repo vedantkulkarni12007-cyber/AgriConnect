@@ -53,5 +53,5 @@ def calculate_farmer_earnings(db: Session, lot_id: str, farmer_id: str) -> dict:
     return {
         "market_value": market_value,
         "best_offer_value": best_offer_value,
-        "potential_additional_earnings": potential_additional_earnings
+        "potential_additional_earnings": potential_additional_earnings,
     }

@@ -1,9 +1,9 @@
-
 from pydantic import BaseModel
 
 
 class MatchRequest(BaseModel):
     lot_id: str
+
 
 class ComponentScores(BaseModel):
     crop: int
@@ -13,6 +13,7 @@ class ComponentScores(BaseModel):
     price: int
     time: int
     verification: int
+
 
 class MatchResponse(BaseModel):
     id: str

@@ -18,11 +18,13 @@ redis_client: Redis | None = None
 _in_memory_buckets: dict[str, list[float]] = defaultdict(list)
 _redis_logged_degradation = False
 
+
 def get_redis() -> Redis | None:
     global redis_client, _redis_logged_degradation
     if redis_client is None:
         try:
             from urllib.parse import urlparse
+
             parsed = urlparse(settings.redis_url)
             r = Redis(
                 host=parsed.hostname or "localhost",
@@ -31,7 +33,7 @@ def get_redis() -> Redis | None:
                 db=int(parsed.path.lstrip("/")) if parsed.path else 0,
                 decode_responses=True,
                 socket_connect_timeout=0.5,
-                socket_timeout=0.5
+                socket_timeout=0.5,
             )
             r.ping()
             redis_client = r
@@ -49,6 +51,7 @@ def get_redis() -> Redis | None:
             redis_client = None
     return redis_client
 
+
 def _extract_request(args, kwargs):
     req = kwargs.get("request")
     if req:
@@ -57,6 +60,7 @@ def _extract_request(args, kwargs):
         if isinstance(a, Request) or (hasattr(a, "client") and hasattr(a, "url")):
             return a
     return None
+
 
 def _check_limit(request, max_requests: int, window_seconds: int, key_prefix: str):
     global _redis_logged_degradation
@@ -100,22 +104,28 @@ def _check_limit(request, max_requests: int, window_seconds: int, key_prefix: st
             detail=f"Rate limit exceeded: maximum {max_requests} requests per {window_seconds}s.",
         )
 
+
 def rate_limit(max_requests: int = 100, window_seconds: int = 60, key_prefix: str = "rl"):
     def decorator(func: Callable):
         if inspect.iscoroutinefunction(func):
+
             @wraps(func)
             async def async_wrapper(*args, **kwargs):
                 req = _extract_request(args, kwargs)
                 if req:
                     _check_limit(req, max_requests, window_seconds, key_prefix)
                 return await func(*args, **kwargs)
+
             return async_wrapper
         else:
+
             @wraps(func)
             def sync_wrapper(*args, **kwargs):
                 req = _extract_request(args, kwargs)
                 if req:
                     _check_limit(req, max_requests, window_seconds, key_prefix)
                 return func(*args, **kwargs)
+
             return sync_wrapper
+
     return decorator

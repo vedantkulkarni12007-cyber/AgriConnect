@@ -7,8 +7,11 @@ from app.models import StorageFacility
 
 router = APIRouter(prefix="/storage", tags=["storage"])
 
+
 @router.get("", response_model=dict)
-def list_storage(request: Request, db: Session = Depends(get_db), page: int = Query(1, ge=1), limit: int = Query(20, ge=1, le=100)):
+def list_storage(
+    request: Request, db: Session = Depends(get_db), page: int = Query(1, ge=1), limit: int = Query(20, ge=1, le=100)
+):
     q = db.query(StorageFacility).filter(StorageFacility.status == "ACTIVE")
     total = q.count()
     items = q.offset((page - 1) * limit).limit(limit).all()
@@ -24,7 +27,13 @@ def list_storage(request: Request, db: Session = Depends(get_db), page: int = Qu
         }
         for s in items
     ]
-    return {"success": True, "data": {"items": data, "total": total, "page": page, "limit": limit, "pages": (total + limit - 1) // limit}, "message": f"{len(data)} facilities", "request_id": getattr(request.state, "request_id", None)}
+    return {
+        "success": True,
+        "data": {"items": data, "total": total, "page": page, "limit": limit, "pages": (total + limit - 1) // limit},
+        "message": f"{len(data)} facilities",
+        "request_id": getattr(request.state, "request_id", None),
+    }
+
 
 @router.get("/buckets", response_model=dict)
 def list_buckets(request: Request):
@@ -40,6 +49,7 @@ def list_buckets(request: Request):
     except Exception as e:
         return {"success": False, "data": [], "message": f"Error listing buckets: {e}"}
 
+
 @router.post("/presigned-url", response_model=dict)
 def create_presigned_url(key: str, expiration: int = 3600, request: Request = None):
     """Generate presigned URL for S3 object"""
@@ -48,4 +58,9 @@ def create_presigned_url(key: str, expiration: int = 3600, request: Request = No
         raise HTTPException(status_code=503, detail="S3 not configured")
 
     url = generate_presigned_url(key, expiration)
-    return {"success": True, "data": {"url": url, "expires_in": expiration}, "message": "Presigned URL generated", "request_id": getattr(request.state, "request_id", None) if request else None}
+    return {
+        "success": True,
+        "data": {"url": url, "expires_in": expiration},
+        "message": "Presigned URL generated",
+        "request_id": getattr(request.state, "request_id", None) if request else None,
+    }

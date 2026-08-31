@@ -24,6 +24,7 @@ from app.modules.auth.service import (
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
+
 @router.post("/register", response_model=dict, status_code=201)
 @rate_limit(max_requests=10, window_seconds=60, key_prefix="rl_reg")
 def register(data: RegisterRequest, request: Request, db: Session = Depends(get_db)):
@@ -35,6 +36,7 @@ def register(data: RegisterRequest, request: Request, db: Session = Depends(get_
         "message": "Registered successfully",
         "request_id": getattr(request.state, "request_id", None),
     }
+
 
 @router.post("/login", response_model=dict)
 @rate_limit(max_requests=25, window_seconds=60, key_prefix="rl_login")
@@ -48,10 +50,12 @@ def login(data: LoginRequest, request: Request, db: Session = Depends(get_db)):
         "request_id": getattr(request.state, "request_id", None),
     }
 
+
 @router.post("/refresh", response_model=dict)
 def refresh(data: RefreshRequest, db: Session = Depends(get_db)):
     tokens = refresh_tokens(db, data.refresh_token)
     return {"success": True, "data": tokens, "message": "Tokens refreshed", "request_id": None}
+
 
 @router.post("/forgot-password", response_model=dict)
 @rate_limit(max_requests=10, window_seconds=60, key_prefix="rl_fp")
@@ -64,6 +68,7 @@ def forgot_password(data: ForgotPasswordRequest, request: Request, db: Session =
         "request_id": getattr(request.state, "request_id", None),
     }
 
+
 @router.post("/reset-password", response_model=dict)
 @rate_limit(max_requests=10, window_seconds=60, key_prefix="rl_rp")
 def reset_password_endpoint(data: ResetPasswordRequest, request: Request, db: Session = Depends(get_db)):
@@ -75,6 +80,7 @@ def reset_password_endpoint(data: ResetPasswordRequest, request: Request, db: Se
         "request_id": getattr(request.state, "request_id", None),
     }
 
+
 @router.get("/me", response_model=dict)
 def me(request: Request, user: User = Depends(get_current_user)):
     return {
@@ -83,6 +89,7 @@ def me(request: Request, user: User = Depends(get_current_user)):
         "message": "Current user",
         "request_id": getattr(request.state, "request_id", None),
     }
+
 
 @router.post("/logout", response_model=dict)
 def logout(request: Request, user: User = Depends(get_current_user)):

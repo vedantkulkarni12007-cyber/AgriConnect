@@ -91,11 +91,7 @@ def register_user(db: Session, data, request: Request):
 
 def authenticate_user(db: Session, email_or_phone: str, password: str, request: Request):
     login_id = email_or_phone.strip()
-    user = (
-        db.query(User)
-        .filter((User.email == login_id.lower()) | (User.phone == login_id))
-        .first()
-    )
+    user = db.query(User).filter((User.email == login_id.lower()) | (User.phone == login_id)).first()
     if not user or not user.password_hash or not verify_password(password, user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

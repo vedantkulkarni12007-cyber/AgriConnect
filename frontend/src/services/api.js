@@ -15,7 +15,7 @@ import {
   DEMO_MARKERS,
 } from '../data/demoData';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8001';
+const API_BASE = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || (typeof window !== 'undefined' && window.location.hostname === 'localhost' ? 'http://localhost:8000' : '');
 
 // Check if explicit demo mode was requested via query param (?demo=1) or .env
 export function isExplicitDemoMode() {
@@ -442,3 +442,58 @@ export async function checkHealth() {
   if (res && res.success) return res;
   return { success: false, mode: isExplicitDemoMode() ? 'demo' : 'offline', status: 'unreachable' };
 }
+
+// 13. Map Locations (Mandis, Buyers, Storage, FPOs)
+export async function getMarketLocations({ category = 'all', state = null, district = null, near_lat = null, near_lng = null, radius_km = 150, search = null } = {}) {
+  if (isExplicitDemoMode()) {
+    const list = category === 'all' ? DEMO_MARKERS : DEMO_MARKERS.filter(m => m.type === category);
+    return {
+      success: true,
+      data: {
+        locations: list,
+        counts: {
+          all: DEMO_MARKERS.length,
+          mandi: DEMO_MARKERS.filter(m => m.type === 'mandi').length,
+          buyer: DEMO_MARKERS.filter(m => m.type === 'buyer').length,
+          storage: DEMO_MARKERS.filter(m => m.type === 'storage').length,
+          fpo: 0,
+        },
+        total: list.length,
+      },
+      provenance: 'demo'
+    };
+  }
+
+  const params = new URLSearchParams();
+  if (category) params.append('category', category);
+  if (state && state !== 'All') params.append('state', state);
+  if (district && district !== 'All') params.append('district', district);
+  if (near_lat !== null && near_lat !== undefined) params.append('near_lat', near_lat);
+  if (near_lng !== null && near_lng !== undefined) params.append('near_lng', near_lng);
+  if (radius_km) params.append('radius_km', radius_km);
+  if (search && search.trim()) params.append('search', search.trim());
+
+  const res = await apiCall(`/api/v1/markets/locations?${params}`);
+  if (res && res.success && res.data) {
+    return { success: true, data: res.data, provenance: 'live' };
+  }
+  return { success: false, error: res?.error || 'Failed to load map locations', data: { locations: [], counts: {} } };
+}
+
+// 14. Live Government Mandi Prices
+export async function getLivePrices({ crop = null, market = null, district = null, state = null, limit = 50, offset = 0 } = {}) {
+  const params = new URLSearchParams();
+  if (crop && crop !== 'All') params.append('crop', crop);
+  if (market && market !== 'All') params.append('market', market);
+  if (district && district !== 'All') params.append('district', district);
+  if (state && state !== 'All') params.append('state', state);
+  params.append('limit', limit);
+  params.append('offset', offset);
+
+  const res = await apiCall(`/api/v1/prices/live?${params}`);
+  if (res && res.success && res.data) {
+    return { success: true, data: res.data.items || [], is_live: res.data.is_live, source: res.source, total: res.data.total };
+  }
+  return { success: false, error: res?.error || 'Failed to load government mandi prices', data: [] };
+}
+

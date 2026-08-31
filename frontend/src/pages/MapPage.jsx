@@ -1,246 +1,480 @@
 // =============================================================
 // Map Page
-// Interactive map with mandis, buyers, and storage markers
-// Uses React Leaflet + OpenStreetMap (no API key required!)
+// Interactive Market Map with Mandis, Buyers, Storage & FPOs
+// Uses React Leaflet + OpenStreetMap + Real PostGIS Backend
 // =============================================================
 
-import { useState, useEffect } from 'react';
-import { MapPin, Warehouse, ShoppingBag, Store } from 'lucide-react';
-import { DEMO_MARKERS } from '../data/demoData';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import {
+  MapPin, Warehouse, ShoppingBag, Store, Users,
+  Search, Crosshair, RefreshCw, AlertCircle, ExternalLink
+} from 'lucide-react';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import L from 'leaflet';
+import { getMarketLocations } from '../services/api';
 
-// We load Leaflet dynamically to avoid SSR issues
-// (Leaflet needs browser window to render)
-let MapContainer, TileLayer, Marker, Popup, L;
+// Fix Leaflet default marker assets
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+});
 
-const FILTERS = [
-  { value: 'all', label: 'All', icon: MapPin },
-  { value: 'mandi', label: 'Mandis', icon: Store },
-  { value: 'buyer', label: 'Buyers', icon: ShoppingBag },
-  { value: 'storage', label: 'Storage', icon: Warehouse },
+const CATEGORIES = [
+  { value: 'all', label: 'All', icon: MapPin, color: '#1f2937' },
+  { value: 'mandi', label: 'Mandis', icon: Store, color: '#166534' },
+  { value: 'buyer', label: 'Buyers', icon: ShoppingBag, color: '#2563eb' },
+  { value: 'storage', label: 'Storage', icon: Warehouse, color: '#d97706' },
+  { value: 'fpo', label: 'FPOs', icon: Users, color: '#9333ea' },
 ];
 
-// Color-coded marker icons by type
-function getMarkerColor(type) {
-  return type === 'mandi' ? '#2D6A4F'
-    : type === 'buyer' ? '#2563EB'
-    : '#D97706';
-}
+const RADIUS_OPTIONS = [
+  { value: '25', label: '25 km' },
+  { value: '50', label: '50 km' },
+  { value: '100', label: '100 km' },
+  { value: '250', label: '250 km' },
+  { value: 'all', label: 'All India' },
+];
 
-// SVG pin icon
-function createIcon(color) {
-  if (!L) return null;
+// Helper to create category-specific SVG map pins
+function createCustomPin(color) {
   const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 36" width="24" height="36">
-      <path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 24 12 24s12-15 12-24C24 5.4 18.6 0 12 0z"
-        fill="${color}" stroke="white" stroke-width="1.5"/>
-      <circle cx="12" cy="12" r="4" fill="white"/>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 28 40" width="28" height="40">
+      <defs>
+        <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+          <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000000" flood-opacity="0.3"/>
+        </filter>
+      </defs>
+      <path d="M14 0C6.3 0 0 6.3 0 14c0 10.5 14 26 14 26s14-15.5 14-26C28 6.3 21.7 0 14 0z"
+        fill="${color}" stroke="#ffffff" stroke-width="1.8" filter="url(#shadow)"/>
+      <circle cx="14" cy="14" r="5" fill="#ffffff"/>
     </svg>
   `;
   return L.divIcon({
     html: svg,
-    iconSize: [24, 36],
-    iconAnchor: [12, 36],
-    popupAnchor: [0, -36],
-    className: '',
+    iconSize: [28, 40],
+    iconAnchor: [14, 40],
+    popupAnchor: [0, -38],
+    className: 'custom-map-pin',
   });
 }
 
-function LeafletMap({ markers }) {
-  useEffect(() => {
-    // Fix leaflet default icon
-    delete L.Icon.Default.prototype._getIconUrl;
-    L.Icon.Default.mergeOptions({
-      iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
-      iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
-      shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-    });
-  }, []);
+function createUserLocationPin() {
+  const svg = `
+    <div style="position: relative; width: 24px; height: 24px;">
+      <div style="position: absolute; width: 24px; height: 24px; border-radius: 50%; background: rgba(59, 130, 246, 0.35); animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;"></div>
+      <div style="position: absolute; top: 4px; left: 4px; width: 16px; height: 16px; border-radius: 50%; background: #2563eb; border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>
+    </div>
+  `;
+  return L.divIcon({
+    html: svg,
+    iconSize: [24, 24],
+    iconAnchor: [12, 12],
+    className: 'user-loc-pin',
+  });
+}
 
-  return (
-    <MapContainer
-      center={[20.0, 73.8]}
-      zoom={8}
-      style={{ height: '100%', width: '100%' }}
-      className="rounded-2xl"
-    >
-      <TileLayer
-        attribution='© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-      />
-      {markers.map(marker => (
-        <Marker
-          key={marker.id}
-          position={[marker.lat, marker.lng]}
-          icon={createIcon(getMarkerColor(marker.type))}
-        >
-          <Popup>
-            <div className="p-1 min-w-40">
-              <div className="flex items-center gap-1.5 mb-1">
-                <span className={`w-2.5 h-2.5 rounded-full inline-block`} style={{ background: getMarkerColor(marker.type) }} />
-                <span className="text-xs font-semibold text-gray-500 capitalize">{marker.type}</span>
-              </div>
-              <p className="font-bold text-gray-900 text-sm">{marker.name}</p>
-              <p className="text-xs text-gray-600 mt-1">{marker.info}</p>
-            </div>
-          </Popup>
-        </Marker>
-      ))}
-    </MapContainer>
-  );
+// Controller to smoothly update map view and fix tile rendering sizes
+function MapController({ center, zoom }) {
+  const map = useMap();
+  useEffect(() => {
+    map.invalidateSize();
+    if (center && Array.isArray(center) && center.length === 2 && !isNaN(center[0]) && !isNaN(center[1])) {
+      map.setView(center, zoom || map.getZoom(), { animate: true });
+    }
+  }, [center, zoom, map]);
+  return null;
 }
 
 export default function MapPage() {
-  const [filter, setFilter] = useState('all');
-  const [mapReady, setMapReady] = useState(false);
-  const [mapError, setMapError] = useState(false);
+  const [category, setCategory] = useState('all');
+  const [radius, setRadius] = useState('100');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedLocation, setSelectedLocation] = useState(null);
 
-  // Dynamically import Leaflet (required for browser-only library)
-  useEffect(() => {
-    async function loadLeaflet() {
-      try {
-        const leaflet = await import('leaflet');
-        const reactLeaflet = await import('react-leaflet');
-        L = leaflet.default;
-        MapContainer = reactLeaflet.MapContainer;
-        TileLayer = reactLeaflet.TileLayer;
-        Marker = reactLeaflet.Marker;
-        Popup = reactLeaflet.Popup;
-        // Load CSS
-        if (!document.querySelector('link[href*="leaflet"]')) {
-          const link = document.createElement('link');
-          link.rel = 'stylesheet';
-          link.href = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css';
-          document.head.appendChild(link);
-        }
-        setMapReady(true);
-      } catch {
-        setMapError(true);
-      }
+  // Geolocation state
+  const [userCoords, setUserCoords] = useState(null); // { lat, lng }
+  const [geoStatus, setGeoStatus] = useState('prompt'); // 'prompt' | 'granted' | 'denied' | 'error'
+  const [geoLoading, setGeoLoading] = useState(false);
+
+  // Map viewport state
+  const defaultCenter = useMemo(() => [19.9975, 73.7898], []); // Nashik / Maharashtra agricultural hub
+  const [mapCenter, setMapCenter] = useState(defaultCenter);
+  const [mapZoom, setMapZoom] = useState(8);
+
+  // Data state
+  const [locations, setLocations] = useState([]);
+  const [counts, setCounts] = useState({ all: 0, mandi: 0, buyer: 0, storage: 0, fpo: 0 });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Request real browser geolocation
+  const requestGeolocation = useCallback(() => {
+    if (!navigator.geolocation) {
+      setGeoStatus('error');
+      return;
     }
-    loadLeaflet();
+    setGeoLoading(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        setUserCoords(coords);
+        setMapCenter([coords.lat, coords.lng]);
+        setMapZoom(10);
+        setGeoStatus('granted');
+        setGeoLoading(false);
+      },
+      (err) => {
+        console.warn('Geolocation access denied or unavailable:', err);
+        setGeoStatus('denied');
+        setGeoLoading(false);
+      },
+      { enableHighAccuracy: true, timeout: 8000 }
+    );
   }, []);
 
-  const filtered = filter === 'all' ? DEMO_MARKERS : DEMO_MARKERS.filter(m => m.type === filter);
+  // Auto-request location on initial mount
+  useEffect(() => {
+    requestGeolocation();
+  }, [requestGeolocation]);
 
-  const counts = {
-    mandi: DEMO_MARKERS.filter(m => m.type === 'mandi').length,
-    buyer: DEMO_MARKERS.filter(m => m.type === 'buyer').length,
-    storage: DEMO_MARKERS.filter(m => m.type === 'storage').length,
-  };
+  // Load locations from backend
+  const fetchLocations = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await getMarketLocations({
+        category,
+        radius_km: radius === 'all' ? null : Number(radius),
+        near_lat: userCoords?.lat || null,
+        near_lng: userCoords?.lng || null,
+        search: searchTerm,
+      });
+
+      if (res && res.success && res.data) {
+        setLocations(res.data.locations || []);
+        if (res.data.counts) {
+          setCounts(res.data.counts);
+        }
+      } else {
+        setError(res?.error || 'Could not load location records.');
+      }
+    } catch {
+      setError('Unable to connect to market directory server.');
+    } finally {
+      setLoading(false);
+    }
+  }, [category, radius, userCoords, searchTerm]);
+
+  useEffect(() => {
+    fetchLocations();
+  }, [fetchLocations]);
+
+  // Filtered markers by search term
+  const displayedLocations = useMemo(() => {
+    if (!searchTerm.trim()) return locations;
+    const q = searchTerm.toLowerCase();
+    return locations.filter(
+      loc =>
+        loc.name?.toLowerCase().includes(q) ||
+        loc.district?.toLowerCase().includes(q) ||
+        loc.state?.toLowerCase().includes(q)
+    );
+  }, [locations, searchTerm]);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8 h-[calc(100vh-4rem)] flex flex-col">
-      {/* Header */}
-      <div className="mb-6 flex-shrink-0">
-        <p className="section-label">Interactive Locator</p>
-        <h1 className="text-2xl font-bold text-gray-900">Market Map</h1>
-        <p className="text-gray-500 text-sm mt-1">
-          Find mandis, buyers, and storage facilities near you
-        </p>
+    <div className="max-w-7xl mx-auto px-4 py-6 h-[calc(100vh-4.5rem)] flex flex-col space-y-4">
+      {/* Header & Geolocation Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 flex-shrink-0">
+        <div>
+          <p className="section-label">Spatial Market Directory</p>
+          <h1 className="text-2xl font-bold text-gray-900">Interactive Market Map</h1>
+          <p className="text-xs text-gray-500 mt-0.5">
+            Real APMC Mandis, Verified Buyers, Warehouses & FPOs with live PostGIS proximity
+          </p>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <button
+            onClick={requestGeolocation}
+            disabled={geoLoading}
+            className={`btn-sm flex items-center gap-2 text-xs font-semibold px-3 py-2 rounded-xl transition-all border ${
+              geoStatus === 'granted'
+                ? 'bg-blue-50 border-blue-200 text-blue-700'
+                : 'bg-white border-gray-200 text-gray-700 hover:border-green-300 hover:bg-green-50/50'
+            }`}
+          >
+            <Crosshair className={`w-4 h-4 ${geoLoading ? 'animate-spin' : ''}`} />
+            {geoLoading ? 'Locating...' : geoStatus === 'granted' ? 'Using Live GPS' : 'Use My Location'}
+          </button>
+
+          <button
+            onClick={fetchLocations}
+            className="p-2 bg-white border border-gray-200 hover:bg-gray-50 rounded-xl text-gray-600 transition-colors"
+            title="Refresh Locations"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          </button>
+        </div>
       </div>
 
-      <div className="flex-1 grid lg:grid-cols-4 gap-6 min-h-0">
-        {/* LEFT: Map */}
-        <div className="lg:col-span-3 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col relative z-0">
-          {/* Floating Legend */}
-          <div className="absolute top-4 right-4 z-[400] bg-white/90 backdrop-blur-sm px-4 py-3 rounded-xl shadow-md border border-gray-100 flex flex-col gap-2 pointer-events-auto">
-            <p className="text-xs font-bold text-gray-800 uppercase tracking-wider mb-1">Legend</p>
-            <span className="flex items-center gap-2 text-xs font-medium text-gray-600">
-              <span className="w-3 h-3 rounded-full bg-green-800 inline-block shadow-sm" />Mandi ({counts.mandi})
-            </span>
-            <span className="flex items-center gap-2 text-xs font-medium text-gray-600">
-              <span className="w-3 h-3 rounded-full bg-blue-600 inline-block shadow-sm" />Buyer ({counts.buyer})
-            </span>
-            <span className="flex items-center gap-2 text-xs font-medium text-gray-600">
-              <span className="w-3 h-3 rounded-full bg-amber-500 inline-block shadow-sm" />Storage ({counts.storage})
-            </span>
+      {/* Geolocation Notice (if denied) */}
+      {geoStatus === 'denied' && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-2 text-xs text-amber-800 flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0" />
+          <span>Location access was denied. Showing all regional agricultural hubs. You can search by district or APMC name.</span>
+        </div>
+      )}
+
+      {/* Main Grid: Map (Left) + Filters & List (Right) */}
+      <div className="flex-1 grid lg:grid-cols-12 gap-5 min-h-0">
+        {/* LEFT: Map Container (8 cols) */}
+        <div className="lg:col-span-8 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col relative z-0">
+          {/* Floating Category Badges on Map */}
+          <div className="absolute top-3 left-3 z-[400] bg-white/95 backdrop-blur-md p-1.5 rounded-xl shadow-md border border-gray-200/80 flex items-center gap-1 overflow-x-auto max-w-[calc(100%-1.5rem)]">
+            {CATEGORIES.map(c => {
+              const Icon = c.icon;
+              const active = category === c.value;
+              return (
+                <button
+                  key={c.value}
+                  onClick={() => setCategory(c.value)}
+                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+                    active
+                      ? 'bg-green-800 text-white shadow-xs'
+                      : 'text-gray-600 hover:bg-gray-100'
+                  }`}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  <span>{c.label}</span>
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                    active ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500'
+                  }`}>
+                    {counts[c.value] || 0}
+                  </span>
+                </button>
+              );
+            })}
           </div>
 
-          {mapError ? (
-            <div className="h-full flex flex-col items-center justify-center gap-4 text-center px-4 bg-gray-50">
-              <MapPin className="w-12 h-12 text-gray-300" />
-              <div>
-                <p className="font-semibold text-gray-700">Map could not load</p>
-                <p className="text-sm text-gray-500 mt-1 max-w-sm">
-                  Make sure you are connected to the internet. The map uses OpenStreetMap tiles.
-                </p>
-              </div>
-            </div>
-          ) : !mapReady ? (
-            <div className="h-full flex items-center justify-center bg-gray-50">
-              <div className="text-center">
-                <div className="w-8 h-8 border-4 border-green-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-                <p className="text-gray-500 text-sm font-medium">Loading interactive map...</p>
-              </div>
-            </div>
-          ) : (
-            <div className="flex-1 w-full h-full relative z-0">
-              <LeafletMap markers={filtered} />
-            </div>
-          )}
-          <div className="bg-gray-50 p-2 text-center border-t border-gray-100 z-10">
-            <p className="text-[10px] text-gray-400">
-              Map data © OpenStreetMap contributors. Marker locations are approximate demo data.
-            </p>
+          {/* Floating Distance Filter */}
+          <div className="absolute top-3 right-3 z-[400] bg-white/95 backdrop-blur-md px-3 py-1.5 rounded-xl shadow-md border border-gray-200/80 flex items-center gap-2">
+            <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Radius:</span>
+            <select
+              value={radius}
+              onChange={(e) => setRadius(e.target.value)}
+              className="text-xs font-semibold text-gray-800 bg-transparent outline-none cursor-pointer"
+            >
+              {RADIUS_OPTIONS.map(r => (
+                <option key={r.value} value={r.value}>{r.label}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Leaflet Map */}
+          <div className="flex-1 w-full h-full relative z-0">
+            <MapContainer
+              center={mapCenter}
+              zoom={mapZoom}
+              style={{ height: '100%', width: '100%' }}
+              className="w-full h-full rounded-2xl"
+            >
+              <MapController center={mapCenter} zoom={mapZoom} />
+
+              <TileLayer
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                maxZoom={19}
+              />
+
+              {/* User Location Marker */}
+              {userCoords && (
+                <Marker
+                  position={[userCoords.lat, userCoords.lng]}
+                  icon={createUserLocationPin()}
+                >
+                  <Popup>
+                    <div className="p-1 text-center">
+                      <p className="font-bold text-blue-700 text-xs">📍 You Are Here</p>
+                      <p className="text-[10px] text-gray-500 mt-0.5">GPS Location</p>
+                    </div>
+                  </Popup>
+                </Marker>
+              )}
+
+              {/* Location Markers */}
+              {displayedLocations.map(loc => {
+                const color =
+                  loc.type === 'mandi' ? '#166534'
+                  : loc.type === 'buyer' ? '#2563eb'
+                  : loc.type === 'storage' ? '#d97706'
+                  : '#9333ea';
+
+                return (
+                  <Marker
+                    key={loc.id}
+                    position={[loc.lat, loc.lng]}
+                    icon={createCustomPin(color, loc.type)}
+                    eventHandlers={{
+                      click: () => setSelectedLocation(loc),
+                    }}
+                  >
+                    <Popup>
+                      <div className="p-1.5 min-w-48">
+                        <div className="flex items-center justify-between gap-2 mb-1">
+                          <span
+                            className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md text-white"
+                            style={{ backgroundColor: color }}
+                          >
+                            {loc.type}
+                          </span>
+                          {loc.distance_km !== null && (
+                            <span className="text-[11px] font-semibold text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded">
+                              {loc.distance_km} km away
+                            </span>
+                          )}
+                        </div>
+                        <h4 className="font-bold text-gray-900 text-sm mt-1">{loc.name}</h4>
+                        <p className="text-xs text-gray-600 mt-0.5">{loc.district}, {loc.state}</p>
+                        <p className="text-[11px] text-gray-500 mt-1 border-t border-gray-100 pt-1 leading-snug">{loc.info}</p>
+                      </div>
+                    </Popup>
+                  </Marker>
+                );
+              })}
+            </MapContainer>
+          </div>
+
+          {/* Map Footer Bar */}
+          <div className="bg-gray-50/80 backdrop-blur-sm px-4 py-2 border-t border-gray-100 flex items-center justify-between text-[11px] text-gray-500 z-10">
+            <span>Showing <strong>{displayedLocations.length}</strong> locations</span>
+            <span>Spatial Data &copy; PostGIS &amp; OpenStreetMap</span>
           </div>
         </div>
 
-        {/* RIGHT: Filters + List */}
-        <div className="lg:col-span-1 flex flex-col gap-4 overflow-hidden">
-          {/* Filters */}
-          <div className="card p-4 flex-shrink-0">
-            <p className="text-sm font-bold text-gray-900 mb-3">Filter Points</p>
-            <div className="flex flex-col gap-2">
-              {FILTERS.map(f => {
-                const Icon = f.icon;
-                return (
-                  <button
-                    key={f.value}
-                    onClick={() => setFilter(f.value)}
-                    className={`flex items-center justify-between px-3 py-2.5 rounded-xl text-sm font-medium transition-all w-full text-left ${
-                      filter === f.value
-                        ? 'bg-green-800 text-white shadow-sm'
-                        : 'bg-white border border-gray-200 text-gray-600 hover:border-green-300 hover:bg-green-50/50'
-                    }`}
-                  >
-                    <span className="flex items-center gap-2">
-                      <Icon className="w-4 h-4" />
-                      {f.label}
-                    </span>
-                    {f.value !== 'all' && (
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${
-                        filter === f.value ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500'
-                      }`}>
-                        {counts[f.value] || 0}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
+        {/* RIGHT: Search, Directory & Location Details (4 cols) */}
+        <div className="lg:col-span-4 flex flex-col gap-4 overflow-hidden">
+          {/* Search Box */}
+          <div className="card p-3.5 flex-shrink-0">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                className="input pl-9 text-xs py-2 h-9"
+                placeholder="Search by mandi name, city or district..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
             </div>
           </div>
 
-          {/* List */}
+          {/* Selected Location Card (if selected) */}
+          {selectedLocation && (
+            <div className="card p-4 bg-green-50/70 border-green-200 flex-shrink-0 relative">
+              <button
+                onClick={() => setSelectedLocation(null)}
+                className="absolute top-2 right-2 text-gray-400 hover:text-gray-600 text-xs font-bold p-1"
+              >
+                ✕
+              </button>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="w-2.5 h-2.5 rounded-full bg-green-700" />
+                <span className="text-[10px] uppercase font-bold text-green-800 tracking-wider">
+                  {selectedLocation.type} Details
+                </span>
+                {selectedLocation.distance_km !== null && (
+                  <span className="text-[11px] font-bold text-green-900 ml-auto bg-green-200/80 px-2 py-0.5 rounded-full">
+                    {selectedLocation.distance_km} km
+                  </span>
+                )}
+              </div>
+              <h3 className="font-bold text-gray-900 text-sm mt-1">{selectedLocation.name}</h3>
+              <p className="text-xs text-gray-600">{selectedLocation.district}, {selectedLocation.state}</p>
+              <p className="text-xs text-gray-700 mt-2 bg-white/80 p-2 rounded-lg border border-green-100">
+                {selectedLocation.info}
+              </p>
+              <button
+                onClick={() => {
+                  setMapCenter([selectedLocation.lat, selectedLocation.lng]);
+                  setMapZoom(13);
+                }}
+                className="mt-3 w-full btn-primary btn-sm text-xs font-semibold py-1.5 flex items-center justify-center gap-1.5"
+              >
+                <ExternalLink className="w-3.5 h-3.5" /> Center on Map
+              </button>
+            </div>
+          )}
+
+          {/* Directory List */}
           <div className="card flex-1 overflow-y-auto p-0">
-            <div className="p-4 border-b border-gray-100 sticky top-0 bg-white/95 backdrop-blur-sm z-10">
-              <h2 className="font-bold text-gray-900">Locations</h2>
-              <p className="text-xs text-gray-500 mt-0.5">Showing {filtered.length} points</p>
+            <div className="p-3.5 border-b border-gray-100 sticky top-0 bg-white/95 backdrop-blur-sm z-10 flex items-center justify-between">
+              <div>
+                <h2 className="font-bold text-gray-900 text-sm">Nearby Locations</h2>
+                <p className="text-[11px] text-gray-400">Sorted nearest first</p>
+              </div>
+              <span className="text-xs font-bold bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+                {displayedLocations.length}
+              </span>
             </div>
-            <div className="divide-y divide-gray-50">
-              {filtered.map(marker => (
-                <div key={marker.id} className="p-4 hover:bg-green-50/30 transition-colors">
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <span
-                      className="w-2.5 h-2.5 rounded-full flex-shrink-0 shadow-sm"
-                      style={{ background: getMarkerColor(marker.type) }}
-                    />
-                    <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">{marker.type}</span>
-                  </div>
-                  <p className="font-semibold text-gray-800 text-sm">{marker.name}</p>
-                  <p className="text-xs text-gray-500 mt-1 leading-relaxed line-clamp-2">{marker.info}</p>
-                </div>
-              ))}
-            </div>
+
+            {loading ? (
+              <div className="p-8 text-center text-gray-400 text-xs flex flex-col items-center gap-2">
+                <div className="w-6 h-6 border-2 border-green-600 border-t-transparent rounded-full animate-spin" />
+                <span>Loading spatial directory...</span>
+              </div>
+            ) : error ? (
+              <div className="p-6 text-center text-red-500 text-xs">
+                <AlertCircle className="w-5 h-5 mx-auto mb-1 text-red-400" />
+                {error}
+              </div>
+            ) : displayedLocations.length === 0 ? (
+              <div className="p-8 text-center text-gray-400 text-xs">
+                No matching locations found within {radius === 'all' ? 'this region' : `${radius} km`}. Try expanding the radius.
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-50">
+                {displayedLocations.map(loc => {
+                  const color =
+                    loc.type === 'mandi' ? '#166534'
+                    : loc.type === 'buyer' ? '#2563eb'
+                    : loc.type === 'storage' ? '#d97706'
+                    : '#9333ea';
+
+                  return (
+                    <div
+                      key={loc.id}
+                      onClick={() => {
+                        setSelectedLocation(loc);
+                        setMapCenter([loc.lat, loc.lng]);
+                        setMapZoom(12);
+                      }}
+                      className="p-3.5 hover:bg-green-50/40 transition-all cursor-pointer group"
+                    >
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        <div className="flex items-center gap-1.5">
+                          <span
+                            className="w-2 h-2 rounded-full flex-shrink-0"
+                            style={{ backgroundColor: color }}
+                          />
+                          <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
+                            {loc.type}
+                          </span>
+                        </div>
+                        {loc.distance_km !== null && (
+                          <span className="text-[11px] font-bold text-gray-600 bg-gray-100 px-2 py-0.5 rounded-full">
+                            {loc.distance_km} km
+                          </span>
+                        )}
+                      </div>
+                      <p className="font-semibold text-gray-900 text-xs group-hover:text-green-800 transition-colors">
+                        {loc.name}
+                      </p>
+                      <p className="text-[11px] text-gray-500 mt-0.5 truncate">{loc.district}, {loc.state}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       </div>
