@@ -9,7 +9,7 @@ export const CROP_IMAGES = {
   Wheat: '/images/crop-wheat.jpg',
   Rice: '/images/crop-rice.jpg',
   Potato: '/images/crop-potato.jpeg',
-  Soybean: '/images/crop-soybean.svg',
+  Soyabean: '/images/crop-soybean.svg',
   Cotton: '/images/crop-cotton.svg',
   Maize: '/images/crop-maize.svg',
   Chilli: '/images/crop-chilli.svg',

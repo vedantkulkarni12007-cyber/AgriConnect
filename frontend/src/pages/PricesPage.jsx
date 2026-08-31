@@ -15,7 +15,7 @@ import { TrendBadge } from '../components/Badges';
 import { LoadingState, ErrorState } from '../components/States';
 import { getCropImage } from '../utils/cropImages';
 
-const CROPS = ['All', 'Onion', 'Tomato', 'Soybean', 'Cotton', 'Wheat', 'Potato', 'Chilli', 'Rice', 'Maize'];
+const CROPS = ['All', 'Onion', 'Tomato', 'Soyabean', 'Cotton', 'Wheat', 'Potato', 'Chilli', 'Rice'];
 const REGIONS = ['All', 'Nashik', 'Lasalgaon', 'Pune', 'Ahmednagar', 'Solapur', 'Aurangabad', 'Bengaluru', 'Mysuru'];
 
 export default function PricesPage() {
@@ -37,8 +37,8 @@ export default function PricesPage() {
     setError(null);
     try {
       const res = await getLivePrices({
-        crop: cropFilter === 'All' ? null : cropFilter,
-        market: marketFilter === 'All' ? null : marketFilter,
+        crop: null,
+        market: null,
         limit: 100,
       });
 
@@ -69,7 +69,7 @@ export default function PricesPage() {
     } finally {
       setLoading(false);
     }
-  }, [cropFilter, marketFilter]);
+  }, []);
 
   const loadHistory = useCallback(async (crop) => {
     setHistLoading(true);
@@ -220,7 +220,7 @@ export default function PricesPage() {
               value={selectedCrop}
               onChange={(e) => setSelectedCrop(e.target.value)}
             >
-              {['Onion', 'Tomato', 'Soybean', 'Cotton', 'Wheat', 'Potato', 'Chilli', 'Rice'].map(c => (
+              {['Onion', 'Tomato', 'Soyabean', 'Cotton', 'Wheat', 'Potato', 'Chilli', 'Rice'].map(c => (
                 <option key={c}>{c}</option>
               ))}
             </select>
@@ -279,8 +279,8 @@ export default function PricesPage() {
           {marketComparison.length > 0 ? (
             <div className="h-52">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={marketComparison} barSize={32}>
-                  <XAxis dataKey="market" tick={{ fontSize: 10 }} />
+                <BarChart data={marketComparison} barSize={32} margin={{ bottom: 20 }}>
+                  <XAxis dataKey="market" tick={{ fontSize: 10 }} interval={0} angle={-35} textAnchor="end" height={50} />
                   <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => `₹${Number(v || 0).toLocaleString('en-IN')}`} width={70} />
                   <Tooltip
                     formatter={(v) => [`₹${Number(v || 0).toLocaleString('en-IN')}`, 'Modal Price']}
